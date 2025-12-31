@@ -6,6 +6,12 @@ import RegistrarAula from './components/RegistrarAula.vue'
   <div class="app-container">
     <RegistrarAula />
   </div>
+    <footer class="app-footer">
+    <p>
+      © 2025 Antonio Melo · Projeto educacional com IA ·
+      <a href="mailto:antoniorodriguesmelo200@gmail.com">Contato</a>
+    </p>
+  </footer>
 </template>
 
 <style>

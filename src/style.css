@@ -77,3 +77,18 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+.app-footer {
+  margin-top: 40px;
+  padding: 16px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: #666;
+  border-top: 1px solid #e0e0e0;
+}
+
+.app-footer a {
+  color: inherit;
+  text-decoration: underline;
+}
+
