@@ -4,7 +4,6 @@ import RegistrarAula from './components/RegistrarAula.vue'
 
 <template>
   <div class="app">
-    <h1>Agente Pedagógico</h1>
     <RegistrarAula />
   </div>
 </template>
