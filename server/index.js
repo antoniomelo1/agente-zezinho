@@ -7,7 +7,13 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 
+app.get('/', (req, res) => {
+  res.send('Servidor do Agente Pedagógico ativo')
+})
+
+
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY
+
 
 app.post('/analisar-aula', async (req, res) => {
   const resumoAula = req.body.resumo
