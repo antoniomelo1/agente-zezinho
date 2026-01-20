@@ -94,7 +94,9 @@ const limparFormulario = () => {
 <template>
   <section class="container-aula">
     <header class="agent-header">
-      <div class="avatar">Z</div>
+      <div class="avatar-container">
+      <img src="/agente-zezinho.png" alt="Agente Zezinho" class="avatar-img" />
+      </div>
       <div class="header-text">
         <h2>Agente Zezinho</h2>
         <p>Apoio pedagógico · Oficina de Programação</p>
@@ -475,5 +477,30 @@ legend span {
 /* Melhoria no campo de observação para ocupar largura total */
 .full-field {
   width: 100%;
+}
+
+/* Remova ou comente o estilo antigo da .avatar e adicione estes: */
+
+.avatar-container {
+  width: 115px;  /* Aumentei um pouco para mostrar os detalhes do ícone */
+  height: 115px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  /* Uma sombra suave para dar profundidade */
+  filter: drop-shadow(0 10px 15px rgba(37, 99, 235, 0.2));
+  transition: transform 0.3s ease;
+}
+
+.avatar-container:hover {
+  transform: scale(1.05) rotate(5deg); /* Pequena interação ao passar o mouse */
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* Garante que o ícone não fique esticado */
+  border-radius: 16px; /* Combina com o arredondamento que usamos no form */
 }
 </style>
