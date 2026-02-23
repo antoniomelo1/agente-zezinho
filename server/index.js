@@ -1,19 +1,49 @@
 import 'dotenv/config'
 import express from 'express'
-import fetch from 'node-fetch'
 import cors from 'cors'
+import fetch from 'node-fetch'
+
+import { db } from './firebase.js'
+import { collection, getDocs, query, limit } from 'firebase/firestore'
+
+import gerarTabelaDiaria from './services/gerarTabelaDiaria.js'
+import gerarParecerSemanal from './services/gerarParecerSemanal.js'
+import gerarDefesaProjeto from './services/gerarDefesaProjeto.js'
+import { gerarRelatorioMensal } from './services/gerarRelatorioMensal.js'
+import gerarRelatorioDocx from './services/gerarRelatorioDocx.js'
+
+console.log(
+  'OPENAI_API_KEY carregada?',
+  process.env.OPENAI_API_KEY ? 'SIM' : 'NÃO'
+)
 
 const app = express()
 app.use(cors())
 app.use(express.json())
 
+// ======================================================
+// STATUS
+// ======================================================
+
 app.get('/', (req, res) => {
   res.send('Servidor do Agente Pedagógico ativo')
 })
 
+app.get('/ping', (req, res) => {
+  res.json({ status: 'ok' })
+})
+
+app.get('/teste-firestore', async (req, res) => {
+  const q = query(collection(db, 'registros_diarios'), limit(1))
+  const snap = await getDocs(q)
+  res.json({ ok: true, total: snap.size })
+})
+
+// ======================================================
+// ANALISAR AULA
+// ======================================================
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY
-
 
 app.post('/analisar-aula', async (req, res) => {
   const resumoAula = req.body.resumo
@@ -82,6 +112,10 @@ institucional, contemplando a aula realizada e seu contexto.
 Dados da aula:
 {{RESUMO_DA_AULA}}
 
+Princípios:
+- Linguagem acolhedora
+- Sem julgamento
+- Leitura pedagógica do processo
 
 Dados da aula:
 ${resumoAula}
@@ -91,7 +125,7 @@ ${resumoAula}
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
@@ -105,26 +139,90 @@ ${resumoAula}
     })
 
     const data = await response.json()
-
     const textoIA = data.choices?.[0]?.message?.content
 
     if (!textoIA) {
-      return res.status(500).json({
-        resultado: 'A IA respondeu, mas não retornou texto.'
-      })
+      return res.status(500).json({ erro: 'IA não retornou texto.' })
     }
 
     res.json({ resultado: textoIA })
-
   } catch (error) {
-    console.error('ERRO OPENAI:', error)
+    console.error(error)
     res.status(500).json({ erro: error.message })
   }
 })
 
-const PORT = process.env.PORT || 3001
+// ======================================================
+// GERAR TABELA DIÁRIA
+// ======================================================
 
-app.listen(PORT, () => {
-  console.log(`Servidor pedagógico rodando na porta ${PORT}`)
+app.post('/gerar-tabela-diaria', async (req, res) => {
+  try {
+    const resultado = await gerarTabelaDiaria(req.body)
+    res.json(resultado)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ erro: error.message })
+  }
 })
 
+// ======================================================
+// GERAR RELATÓRIO MENSAL (AGORA USANDO SERVICE OFICIAL)
+// ======================================================
+
+app.post('/gerar-relatorio-mensal', async (req, res) => {
+  try {
+    const { ano, mes } = req.body
+
+    if (!ano || !mes || mes < 1 || mes > 12) {
+      return res.status(400).json({ erro: 'Ano ou mês inválido' })
+    }
+
+    const relatorio = await gerarRelatorioMensal({
+      ano: Number(ano),
+      mes: Number(mes)
+    })
+
+    res.json(relatorio)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ erro: error.message })
+  }
+})
+
+
+app.post('/exportar-relatorio-docx', async (req, res) => {
+  try {
+    const relatorio = req.body
+
+    if (!relatorio) {
+      return res.status(400).json({ erro: 'Relatório não enviado' })
+    }
+
+    const buffer = await gerarRelatorioDocx(relatorio)
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    )
+
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename=Relatorio_Execucao_Mensal.docx'
+    )
+
+    res.send(buffer)
+  } catch (erro) {
+    console.error(erro)
+    res.status(500).json({ erro: 'Erro ao exportar DOCX' })
+  }
+})
+
+
+// ======================================================
+// START
+// ======================================================
+
+app.listen(3001, '0.0.0.0', () => {
+  console.log('Servidor pedagógico rodando em http://127.0.0.1:3001')
+})
