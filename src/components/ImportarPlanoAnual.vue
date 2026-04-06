@@ -1,13 +1,16 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-import { doc, setDoc, getDoc, Timestamp } from 'firebase/firestore'
+import { computed, onMounted, ref } from 'vue'
+import { doc, getDoc, setDoc, Timestamp } from 'firebase/firestore'
 import { db } from '../firebase/firebase'
+import { useAuthStore } from '../stores/authStore'
 
 const textoPlano = ref('')
 const carregando = ref(false)
 const jaExiste = ref(false)
 
 const ANO_PLANO = '2026'
+const authStore = useAuthStore()
+const isCoordenador = computed(() => authStore.role === 'coordenador')
 
 // Verifica se já existe plano salvo
 onMounted(async () => {
@@ -49,6 +52,14 @@ async function salvarPlano() {
 
 <template>
   <section class="plano-container">
+    <router-link
+      v-if="isCoordenador"
+      to="/painel-coordenador"
+      class="voltar-painel"
+    >
+      ← Voltar ao painel
+    </router-link>
+
     <header>
       <h2>Plano de Aulas Anual – {{ ANO_PLANO }}</h2>
       <p>
@@ -76,6 +87,19 @@ async function salvarPlano() {
   max-width: 900px;
   margin: 0 auto;
   padding: 40px 20px;
+}
+
+.voltar-painel {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 18px;
+  color: #00f2fe;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.voltar-painel:hover {
+  text-decoration: underline;
 }
 
 header {

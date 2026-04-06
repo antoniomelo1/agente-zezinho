@@ -3,14 +3,21 @@ import express from 'express'
 import cors from 'cors'
 import fetch from 'node-fetch'
 
-import { db } from './firebase.js'
-import { collection, getDocs, query, limit } from 'firebase/firestore'
+import requireAuth from './middlewares/requireAuth.js'
+import requireRole from './middlewares/requireRole.js'
+import { ROLES } from './constants/roles.js'
 
 import gerarTabelaDiaria from './services/gerarTabelaDiaria.js'
 import gerarParecerSemanal from './services/gerarParecerSemanal.js'
 import gerarDefesaProjeto from './services/gerarDefesaProjeto.js'
 import { gerarRelatorioMensal } from './services/gerarRelatorioMensal.js'
 import gerarRelatorioDocx from './services/gerarRelatorioDocx.js'
+import criarEducadorInstitucional from './services/criarEducadorInstitucional.js'
+import ativarEducadorAposRedefinicao from './services/ativarEducadorAposRedefinicao.js'
+import reenviarConviteEducador from './services/reenviarConviteEducador.js'
+import listarEducadores from './services/listarEducadores.js'
+import salvarRegistroDiario from './services/salvarRegistroDiario.js'
+import listarLeituraOperacionalCoordenador from './services/listarLeituraOperacionalCoordenador.js'
 
 console.log(
   'OPENAI_API_KEY carregada?',
@@ -33,11 +40,148 @@ app.get('/ping', (req, res) => {
   res.json({ status: 'ok' })
 })
 
-app.get('/teste-firestore', async (req, res) => {
-  const q = query(collection(db, 'registros_diarios'), limit(1))
-  const snap = await getDocs(q)
-  res.json({ ok: true, total: snap.size })
+// ======================================================
+// USUARIOS
+// ======================================================
+
+app.post(
+  '/usuarios/educadores',
+  requireAuth,
+  requireRole([ROLES.COORDENADOR]),
+  async (req, res) => {
+    try {
+      const { nome, email, oficinaId } = req.body
+
+      const resultado = await criarEducadorInstitucional({
+        nome,
+        email,
+        oficinaId,
+        criadoPorUid: req.currentUser.uid
+      })
+
+      res.status(201).json({
+        mensagem: 'Educador criado com sucesso',
+        ...resultado
+      })
+    } catch (error) {
+      console.error(error)
+
+      if (error.code === 'auth/email-already-exists') {
+        return res.status(409).json({ erro: 'Email ja cadastrado' })
+      }
+
+      if (error.message === 'Nome, email e oficinaId sao obrigatorios') {
+        return res.status(400).json({ erro: error.message })
+      }
+
+      res.status(500).json({ erro: 'Erro ao criar educador' })
+    }
+  }
+)
+
+app.get(
+  '/usuarios/educadores',
+  requireAuth,
+  requireRole([ROLES.COORDENADOR]),
+  async (req, res) => {
+    try {
+      const educadores = await listarEducadores()
+
+      res.json({ educadores })
+    } catch (error) {
+      console.error(error)
+      res.status(500).json({ erro: 'Erro ao listar educadores' })
+    }
+  }
+)
+
+app.post('/usuarios/ativar-primeiro-acesso', requireAuth, async (req, res) => {
+  try {
+    const resultado = await ativarEducadorAposRedefinicao({
+      uid: req.auth.uid,
+      email: req.auth.email
+    })
+
+    res.json({
+      mensagem: 'Primeiro acesso ativado com sucesso',
+      ...resultado
+    })
+  } catch (error) {
+    console.error(error)
+
+    if (
+      error.message === 'Usuario sem cadastro institucional' ||
+      error.message === 'Apenas educadores podem concluir primeiro acesso' ||
+      error.message === 'Email autenticado divergente do cadastro institucional' ||
+      error.message === 'Usuario inativo' ||
+      error.message === 'Usuario nao esta pendente de ativacao'
+    ) {
+      return res.status(403).json({ erro: error.message })
+    }
+
+    if (error.message === 'Primeiro acesso ja concluido') {
+      return res.status(409).json({ erro: error.message })
+    }
+
+    if (error.message === 'Uid obrigatorio para ativacao') {
+      return res.status(400).json({ erro: error.message })
+    }
+
+    res.status(500).json({ erro: 'Erro ao ativar primeiro acesso' })
+  }
 })
+
+app.post(
+  '/coordenador/educadores/:uid/reenviar-convite',
+  requireAuth,
+  requireRole([ROLES.COORDENADOR]),
+  async (req, res) => {
+    try {
+      const resultado = await reenviarConviteEducador({
+        uid: req.params.uid
+      })
+
+      res.json({
+        mensagem: 'Convite reenviado com sucesso',
+        ...resultado
+      })
+    } catch (error) {
+      console.error(error)
+
+      if (
+        error.message === 'Educador nao encontrado' ||
+        error.message === 'Usuario informado nao e educador' ||
+        error.message === 'Educador inativo' ||
+        error.message ===
+          'Reenvio disponivel apenas para educador pendente de ativacao'
+      ) {
+        return res.status(404).json({ erro: error.message })
+      }
+
+      if (error.message === 'Uid obrigatorio para reenvio') {
+        return res.status(400).json({ erro: error.message })
+      }
+
+      res.status(500).json({ erro: 'Erro ao reenviar convite' })
+    }
+  }
+)
+
+app.get(
+  '/coordenador/leitura-operacional',
+  requireAuth,
+  requireRole([ROLES.COORDENADOR]),
+  async (req, res) => {
+    try {
+      const leitura = await listarLeituraOperacionalCoordenador()
+      res.json(leitura)
+    } catch (error) {
+      console.error(error)
+      res.status(500).json({ erro: 'Erro ao carregar leitura operacional' })
+    }
+  }
+)
+
 
 // ======================================================
 // ANALISAR AULA
@@ -45,10 +189,46 @@ app.get('/teste-firestore', async (req, res) => {
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY
 
-app.post('/analisar-aula', async (req, res) => {
-  const resumoAula = req.body.resumo
+app.post(
+  '/registros-diarios',
+  requireAuth,
+  requireRole([ROLES.EDUCADOR]),
+  async (req, res) => {
+    try {
+      const resultado = await salvarRegistroDiario({
+        payload: req.body,
+        educador: req.currentUser
+      })
 
-  const prompt = `
+      res.status(201).json({
+        mensagem: 'Registro diario salvo com sucesso',
+        ...resultado
+      })
+    } catch (error) {
+      console.error(error)
+
+      if (
+        error.message === 'Data obrigatoria' ||
+        error.message === 'Data invalida' ||
+        error.message === 'Modulo e tema do dia sao obrigatorios' ||
+        error.message === 'Ao menos um resumo deve ser informado'
+      ) {
+        return res.status(400).json({ erro: error.message })
+      }
+
+      res.status(500).json({ erro: 'Erro ao salvar registro diario' })
+    }
+  }
+)
+
+app.post(
+  '/analisar-aula',
+  requireAuth,
+  requireRole([ROLES.EDUCADOR]),
+  async (req, res) => {
+    const resumoAula = req.body.resumo
+
+    const prompt = `
 Você é um agente pedagógico de apoio ao educador da Casa do Zezinho.
 
 Contexto pedagógico:
@@ -121,103 +301,118 @@ Dados da aula:
 ${resumoAula}
 `
 
-  try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          { role: 'system', content: 'Você é um agente pedagógico.' },
-          { role: 'user', content: prompt }
-        ],
-        temperature: 0.6
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [
+            { role: 'system', content: 'Você é um agente pedagógico.' },
+            { role: 'user', content: prompt }
+          ],
+          temperature: 0.6
+        })
       })
-    })
 
-    const data = await response.json()
-    const textoIA = data.choices?.[0]?.message?.content
+      const data = await response.json()
+      const textoIA = data.choices?.[0]?.message?.content
 
-    if (!textoIA) {
-      return res.status(500).json({ erro: 'IA não retornou texto.' })
+      if (!textoIA) {
+        return res.status(500).json({ erro: 'IA não retornou texto.' })
+      }
+
+      res.json({ resultado: textoIA })
+    } catch (error) {
+      console.error(error)
+      res.status(500).json({ erro: error.message })
     }
-
-    res.json({ resultado: textoIA })
-  } catch (error) {
-    console.error(error)
-    res.status(500).json({ erro: error.message })
   }
-})
+)
 
 // ======================================================
 // GERAR TABELA DIÁRIA
 // ======================================================
 
-app.post('/gerar-tabela-diaria', async (req, res) => {
-  try {
-    const resultado = await gerarTabelaDiaria(req.body)
-    res.json(resultado)
-  } catch (error) {
-    console.error(error)
-    res.status(500).json({ erro: error.message })
+app.post(
+  '/gerar-tabela-diaria',
+  requireAuth,
+  requireRole([ROLES.EDUCADOR]),
+  async (req, res) => {
+    try {
+      const resultado = await gerarTabelaDiaria(req.body)
+      res.json(resultado)
+    } catch (error) {
+      console.error(error)
+      res.status(500).json({ erro: error.message })
+    }
   }
-})
+)
 
 // ======================================================
-// GERAR RELATÓRIO MENSAL (AGORA USANDO SERVICE OFICIAL)
+// GERAR RELATÓRIO MENSAL
+// PRIMEIRA ROTA PROTEGIDA DA FASE 1
 // ======================================================
 
-app.post('/gerar-relatorio-mensal', async (req, res) => {
-  try {
-    const { ano, mes } = req.body
+app.post(
+  '/gerar-relatorio-mensal',
+  requireAuth,
+  requireRole([ROLES.EDUCADOR]),
+  async (req, res) => {
+    try {
+      const { ano, mes } = req.body
 
-    if (!ano || !mes || mes < 1 || mes > 12) {
-      return res.status(400).json({ erro: 'Ano ou mês inválido' })
+      if (!ano || !mes || mes < 1 || mes > 12) {
+        return res.status(400).json({ erro: 'Ano ou mês inválido' })
+      }
+
+      const relatorio = await gerarRelatorioMensal({
+        ano: Number(ano),
+        mes: Number(mes)
+      })
+
+      res.json(relatorio)
+    } catch (error) {
+      console.error(error)
+      res.status(500).json({ erro: error.message })
     }
-
-    const relatorio = await gerarRelatorioMensal({
-      ano: Number(ano),
-      mes: Number(mes)
-    })
-
-    res.json(relatorio)
-  } catch (error) {
-    console.error(error)
-    res.status(500).json({ erro: error.message })
   }
-})
+)
 
+app.post(
+  '/exportar-relatorio-docx',
+  requireAuth,
+  requireRole([ROLES.EDUCADOR]),
+  async (req, res) => {
+    try {
+      const relatorio = req.body
 
-app.post('/exportar-relatorio-docx', async (req, res) => {
-  try {
-    const relatorio = req.body
+      if (!relatorio) {
+        return res.status(400).json({ erro: 'Relatório não enviado' })
+      }
 
-    if (!relatorio) {
-      return res.status(400).json({ erro: 'Relatório não enviado' })
+      const buffer = await gerarRelatorioDocx(relatorio)
+
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      )
+
+      res.setHeader(
+        'Content-Disposition',
+        'attachment; filename=Relatorio_Execucao_Mensal.docx'
+      )
+
+      res.send(buffer)
+    } catch (erro) {
+      console.error(erro)
+      res.status(500).json({ erro: 'Erro ao exportar DOCX' })
     }
-
-    const buffer = await gerarRelatorioDocx(relatorio)
-
-    res.setHeader(
-      'Content-Type',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-    )
-
-    res.setHeader(
-      'Content-Disposition',
-      'attachment; filename=Relatorio_Execucao_Mensal.docx'
-    )
-
-    res.send(buffer)
-  } catch (erro) {
-    console.error(erro)
-    res.status(500).json({ erro: 'Erro ao exportar DOCX' })
   }
-})
-
+)
 
 // ======================================================
 // START

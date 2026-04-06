@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue'
+import { auth } from '../firebase/firebase.js'
 
 const API_URL = import.meta.env.VITE_API_URL
 
@@ -8,6 +9,16 @@ const ano = ref('')
 const carregando = ref(false)
 const relatorio = ref(null)
 const erro = ref('')
+
+async function obterToken() {
+  const usuario = auth.currentUser
+
+  if (!usuario) {
+    throw new Error('Usuário não autenticado.')
+  }
+
+  return await usuario.getIdToken()
+}
 
 async function gerarRelatorio() {
   if (!mes.value || !ano.value) {
@@ -20,9 +31,14 @@ async function gerarRelatorio() {
   relatorio.value = null
 
   try {
+    const token = await obterToken()
+
     const response = await fetch(`${API_URL}/gerar-relatorio-mensal`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
       body: JSON.stringify({
         mes: Number(mes.value),
         ano: Number(ano.value)
@@ -31,6 +47,11 @@ async function gerarRelatorio() {
 
     const data = await response.json()
 
+    if (!response.ok) {
+      erro.value = data.erro || 'Erro ao gerar relatório.'
+      return
+    }
+
     if (data.erro) {
       erro.value = data.erro
       return
@@ -38,7 +59,7 @@ async function gerarRelatorio() {
 
     relatorio.value = data
   } catch (e) {
-    erro.value = 'Erro ao gerar relatório.'
+    erro.value = e.message || 'Erro ao gerar relatório.'
     console.error(e)
   } finally {
     carregando.value = false
@@ -47,11 +68,22 @@ async function gerarRelatorio() {
 
 async function exportarDocx() {
   try {
+    const token = await obterToken()
+
     const response = await fetch(`${API_URL}/exportar-relatorio-docx`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
       body: JSON.stringify(relatorio.value)
     })
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => null)
+      erro.value = data?.erro || 'Erro ao exportar DOCX.'
+      return
+    }
 
     const blob = await response.blob()
 
@@ -62,13 +94,11 @@ async function exportarDocx() {
     link.click()
 
     window.URL.revokeObjectURL(url)
-
   } catch (e) {
     console.error(e)
-    erro.value = 'Erro ao exportar DOCX.'
+    erro.value = e.message || 'Erro ao exportar DOCX.'
   }
 }
-
 
 </script>
 

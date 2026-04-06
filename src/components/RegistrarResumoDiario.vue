@@ -1,7 +1,8 @@
 <script setup>
-import { collection, addDoc, Timestamp } from 'firebase/firestore'
-import { db } from '../firebase/firebase'
+import { auth } from '../firebase/firebase'
 import { ref, computed } from 'vue'
+
+const API_URL = import.meta.env.VITE_API_URL
 
 // ===== ESTADO DO FORMULÁRIO =====
 const registro = ref({
@@ -16,6 +17,8 @@ const registro = ref({
   softCoracao: '',
   projetoFinal: 'não trabalhado',
   projetoHackathon: 'não iniciado',
+  totalPresentesManha: '',
+  totalPresentesTarde: '',
   observacoes: '',
   fotos: []
 })
@@ -34,6 +37,15 @@ const diaSemana = computed(() => {
   const data = new Date(registro.value.data + 'T00:00:00')
   return dias[data.getDay()]
 })
+
+function normalizarNumeroOpcional(valor) {
+  if (valor === '' || valor === null || valor === undefined) {
+    return null
+  }
+
+  const numero = Number(valor)
+  return Number.isFinite(numero) ? numero : null
+}
 
 // ===== UPLOAD DE FOTOS =====
 function handleFotos(event) {
@@ -54,20 +66,33 @@ async function salvarRegistro() {
       return
     }
 
-    // separa data do resto
-    const { data, ...restoRegistro } = registro.value
+    const usuario = auth.currentUser
 
-    // converte data para Timestamp
-    const dataTimestamp = Timestamp.fromDate(
-      new Date(data + 'T00:00:00')
-    )
+    if (!usuario) {
+      alert('Usuario nao autenticado.')
+      return
+    }
 
-    // salva no Firestore
-    await addDoc(collection(db, 'registros_diarios'), {
-      ...restoRegistro,
-      data: dataTimestamp,
-      criadoEm: Timestamp.now()
+    const token = await usuario.getIdToken()
+
+    const response = await fetch(`${API_URL}/registros-diarios`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        ...registro.value,
+        totalPresentesManha: normalizarNumeroOpcional(registro.value.totalPresentesManha),
+        totalPresentesTarde: normalizarNumeroOpcional(registro.value.totalPresentesTarde)
+      })
     })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.erro || 'Erro ao salvar registro.')
+    }
 
     alert('Registro do dia salvo com sucesso!')
     limparFormulario()
@@ -91,6 +116,8 @@ function limparFormulario() {
     softCoracao: '',
     projetoFinal: 'não trabalhado',
     projetoHackathon: 'não iniciado',
+    totalPresentesManha: '',
+    totalPresentesTarde: '',
     observacoes: '',
     fotos: []
   }
@@ -167,6 +194,15 @@ function limparFormulario() {
     <!-- MANHÃ -->
     <div class="card">
       <h3>Resumo do período da manhã</h3>
+      <label>
+        Presença da manhã
+        <input
+          type="number"
+          min="0"
+          v-model="registro.totalPresentesManha"
+          placeholder="Quantidade de alunos presentes"
+        />
+      </label>
       <textarea
         v-model="registro.resumoManha"
         rows="4" 
@@ -176,6 +212,15 @@ function limparFormulario() {
 
     <div class="card">
       <h3>Resumo do período da tarde</h3>
+      <label>
+        Presença da tarde
+        <input
+          type="number"
+          min="0"
+          v-model="registro.totalPresentesTarde"
+          placeholder="Quantidade de alunos presentes"
+        />
+      </label>
       <textarea
         v-model="registro.resumoTarde"
         rows="4" 

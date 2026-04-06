@@ -1,5 +1,23 @@
 <script setup>
+import { computed } from 'vue'
 import logo from './assets/logo.png'
+import { useRouter } from 'vue-router'
+import { auth } from './firebase/firebase'
+import { signOut } from 'firebase/auth'
+import { useAuthStore } from './stores/authStore'
+
+const router = useRouter()
+const authStore = useAuthStore()
+const isCoordenador = computed(() => authStore.role === 'coordenador')
+
+async function logout() {
+  try {
+    await signOut(auth)
+    router.push('/login')
+  } catch (error) {
+    console.error('Erro ao fazer logout:', error)
+  }
+}
 </script>
 
 <template>
@@ -16,9 +34,13 @@ import logo from './assets/logo.png'
       </div>
 
       <nav class="menu">
-        <router-link to="/registro-diario">Registro</router-link>
-        <router-link to="/relatorio-mensal">Relatórios</router-link>
+        <router-link v-if="!isCoordenador" to="/registro-diario">Registro</router-link>
+        <router-link v-if="!isCoordenador" to="/relatorio-mensal">Relatórios</router-link>
         <router-link to="/plano-anual">Plano Anual</router-link>
+
+        <button @click="logout" class="btn-logout">
+          Sair
+        </button>
       </nav>
     </header>
 
@@ -166,9 +188,9 @@ import logo from './assets/logo.png'
   .logo {
     width: 55px;
     height: 55px;
-    border-radius: 50%; /* Garante que fique redondo */
+    border-radius: 50%;
     object-fit: cover;
-    background: white; /* Fundo branco interno caso o logo tenha transparência */
+    background: white;
     border: 2px solid var(--cor-primaria);
     box-shadow: 0 0 15px rgba(0, 242, 254, 0.5);
   }
@@ -178,24 +200,40 @@ import logo from './assets/logo.png'
     width: 100%;
     justify-content: center;
     gap: 8px;
-    flex-wrap: wrap; /* Permite que os botões quebrem linha se necessário */
+    flex-wrap: wrap;
   }
 
   .menu a {
     padding: 0.5rem 0.8rem;
-    font-size: 0.8rem; /* Diminui um pouco a fonte no celular */
-    flex: 1 1 auto;   /* Faz os botões crescerem proporcionalmente */
+    font-size: 0.8rem;
+    flex: 1 1 auto;
     text-align: center;
   }
 
   /* Ajusta o container do conteúdo para não "vazar" */
   .conteudo {
-    padding: 1rem; /* Reduz a margem externa no mobile */
+    padding: 1rem;
   }
 
   .glass-card {
-    padding: 1.5rem 1rem; /* Reduz o espaçamento interno do card */
+    padding: 1.5rem 1rem;
     border-radius: 16px;
   }
+}
+
+.btn-logout {
+  margin-left: 20px;
+  padding: 6px 14px;
+  background: transparent;
+  border: 1px solid #00f2ff;
+  color: #00f2ff;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: 0.3s;
+}
+
+.btn-logout:hover {
+  background: #00f2ff;
+  color: #000;
 }
 </style>

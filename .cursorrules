@@ -1,0 +1,81 @@
+Projeto: Agente Pedagógico
+
+Identidade do sistema:
+Plataforma institucional da Casa do Zezinho para registro pedagógico, geração de relatórios formais, organização de dados educacionais e futura expansão para múltiplas oficinas.
+A Oficina de Programação é a primeira implementação do sistema, mas não deve ser tratada como modelo universal rígido para todas as demais oficinas.
+
+Stack principal:
+- Frontend: Vue 3 + Vite
+- Backend: Node.js + Express
+- Banco: Firebase Firestore
+- Admin/Auth: Firebase Admin
+- Geração textual: OpenAI API
+- Exportação: docx
+
+Regras institucionais de linguagem:
+- A linguagem deve ser formal, objetiva e institucional
+- O tempo verbal deve respeitar o tipo de documento
+- Relatórios de execução, pareceres e registros avaliativos devem ser redigidos preferencialmente no passado
+- Planos de aula, planejamentos e documentos orientadores podem usar presente e futuro, conforme a finalidade pedagógica
+- Nunca usar a palavra "alunos" em documentos institucionais
+- Preferir "zezinhos", "jovens", "participantes", "integrantes da turma" ou "grupo", conforme o contexto
+- Evitar repetição estrutural nas frases
+- Evitar tom informal, promocional ou publicitário em documentos institucionais
+
+Regras institucionais de operação:
+- Registros confirmados devem ser tratados como imutáveis, salvo ação corretiva autorizada
+- Exclusão de registros deve ser restrita ao coordenador
+- Fotos de menores não devem ser armazenadas fora do fluxo institucional permitido
+- O sistema deve priorizar compatibilidade com Google Docs no fluxo de exportação DOCX
+- Toda alteração deve preservar rastreabilidade institucional
+
+Escalabilidade por oficina:
+- Não assumir que todas as oficinas usam a mesma tela, os mesmos campos ou a mesma lógica
+- Diferenciar sempre o que é base institucional comum do que é específico de cada oficina
+- Novas oficinas podem exigir componentes, formulários, métricas, validações e relatórios próprios
+- Ao propor mudanças, avaliar se a regra é global do sistema ou exclusiva de uma oficina
+
+Diretrizes de dados:
+- O sistema deve manter uma camada narrativa para documentos institucionais
+- O sistema deve manter ou evoluir para uma camada estruturada para filtros, comparações e análises futuras
+- Dados importantes para coordenação não devem existir apenas em texto livre quando puderem ser registrados em campos organizados
+- A modelagem dos dados deve apoiar futuras análises com IA no painel do coordenador
+- A estrutura analítica deve preservar núcleo comum institucional e extensões específicas por oficina
+
+Diretrizes de arquitetura:
+- Views representam telas do sistema
+- Components representam blocos visuais e funcionais reutilizáveis
+- Stores centralizam autenticação e estado global quando necessário
+- Router controla navegação e proteção de rotas
+- Services do backend concentram regras de negócio e geração de conteúdo
+- Middlewares concentram validações, autenticação, autorização e proteção institucional
+- Constants guardam regras fixas, enums, textos-base e parâmetros estáveis
+
+Fluxo principal do relatório:
+- Educador registra atividade
+- Dados são persistidos no Firestore
+- Backend consulta e organiza os registros do período
+- Services especializados geram tabela diária, parecer semanal, defesa do projeto, soft skills e demais blocos necessários
+- Serviço de DOCX compõe o relatório final
+- Documento é baixado e finalizado no fluxo institucional
+
+Papéis institucionais:
+- Coordenador: governança do sistema, cadastro e gestão de educadores, visão consolidada, exclusões corretivas, relatórios e futuras análises
+- Educador: operação da oficina sob sua responsabilidade, registros diários e uso da interface específica da oficina
+
+Ao sugerir alterações:
+- Sempre identificar os arquivos afetados
+- Sempre explicar a lógica da mudança antes do código
+- Sempre priorizar a menor alteração segura
+- Diferenciar correção, refatoração e nova funcionalidade
+- Não reescrever arquivos inteiros sem necessidade
+- Preservar comportamento já validado
+- Considerar impacto em relatórios, planos de aula, autenticação, dados estruturados e escalabilidade
+
+Perguntas obrigatórias antes de propor mudanças:
+- Isso é regra global do sistema ou específica de uma oficina?
+- Isso pertence ao frontend ou ao backend?
+- Esse dado precisa existir apenas em texto ou também em estrutura?
+- Isso afeta relatório, plano de aula ou ambos?
+- Isso melhora escalabilidade ou aumenta acoplamento?
+- Isso preserva o fluxo institucional já validado?
