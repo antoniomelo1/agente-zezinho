@@ -1,10 +1,18 @@
+function formatarDataLocalISO(data) {
+  const ano = data.getFullYear()
+  const mes = String(data.getMonth() + 1).padStart(2, '0')
+  const dia = String(data.getDate()).padStart(2, '0')
+
+  return `${ano}-${mes}-${dia}`
+}
+
 export default function normalizarRegistroDiario(doc) {
   const dados = doc.data()
 
   return {
     id: doc.id,
     ...dados,
-    dataISO: dados.data.toDate().toISOString().substring(0, 10),
+    dataISO: formatarDataLocalISO(dados.data.toDate()),
     resumoManha: dados.resumoManha || '',
     resumoTarde: dados.resumoTarde || '',
     temaDia: dados.temaDia || '',

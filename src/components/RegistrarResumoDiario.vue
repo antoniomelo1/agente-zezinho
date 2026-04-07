@@ -4,9 +4,17 @@ import { ref, computed } from 'vue'
 
 const API_URL = import.meta.env.VITE_API_URL
 
+function gerarDataLocalInput(data = new Date()) {
+  const ano = data.getFullYear()
+  const mes = String(data.getMonth() + 1).padStart(2, '0')
+  const dia = String(data.getDate()).padStart(2, '0')
+
+  return `${ano}-${mes}-${dia}`
+}
+
 // ===== ESTADO DO FORMULÁRIO =====
 const registro = ref({
-  data: new Date().toISOString().substring(0, 10),
+  data: gerarDataLocalInput(),
   modulo: '',
   tipoAula: 'aula regular',
   temaDia: '',
@@ -105,7 +113,7 @@ async function salvarRegistro() {
 // ===== LIMPAR FORMULÁRIO =====
 function limparFormulario() {
   registro.value = {
-    data: new Date().toISOString().substring(0, 10),
+    data: gerarDataLocalInput(),
     modulo: '',
     tipoAula: 'aula regular',
     temaDia: '',

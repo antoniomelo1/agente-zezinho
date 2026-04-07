@@ -2,12 +2,20 @@ import { adminDb } from '../firebaseAdmin.js'
 import { ROLES } from '../constants/roles.js'
 import classificarStatusAtualizacao from './helpers/classificarStatusAtualizacao.js'
 
+function formatarDataLocalISO(data) {
+  const ano = data.getFullYear()
+  const mes = String(data.getMonth() + 1).padStart(2, '0')
+  const dia = String(data.getDate()).padStart(2, '0')
+
+  return `${ano}-${mes}-${dia}`
+}
+
 function normalizarDataISO(timestamp) {
   if (!timestamp?.toDate) {
     return null
   }
 
-  return timestamp.toDate().toISOString().substring(0, 10)
+  return formatarDataLocalISO(timestamp.toDate())
 }
 
 function obterPesoStatus(status) {
