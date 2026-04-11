@@ -1,3 +1,9 @@
+import {
+  resolverTemaDiaDerivado,
+  resolverTemaDiaManha,
+  resolverTemaDiaTarde
+} from './resolverTemaDoRegistro.js'
+
 function formatarDataLocalISO(data) {
   const ano = data.getFullYear()
   const mes = String(data.getMonth() + 1).padStart(2, '0')
@@ -15,7 +21,9 @@ export default function normalizarRegistroDiario(doc) {
     dataISO: formatarDataLocalISO(dados.data.toDate()),
     resumoManha: dados.resumoManha || '',
     resumoTarde: dados.resumoTarde || '',
-    temaDia: dados.temaDia || '',
+    temaDia: resolverTemaDiaDerivado(dados) || '',
+    temaDiaManha: resolverTemaDiaManha(dados) || '',
+    temaDiaTarde: resolverTemaDiaTarde(dados) || '',
     temaAnterior: dados.temaAnterior || '',
     tipoAula: dados.tipoAula || '',
     modulo: dados.modulo || 'N\u00e3o informado',

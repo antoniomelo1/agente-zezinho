@@ -210,7 +210,7 @@ app.post(
       if (
         error.message === 'Data obrigatoria' ||
         error.message === 'Data invalida' ||
-        error.message === 'Modulo e tema do dia sao obrigatorios' ||
+        error.message === 'Modulo e ao menos um tema sao obrigatorios' ||
         error.message === 'Ao menos um resumo deve ser informado'
       ) {
         return res.status(400).json({ erro: error.message })

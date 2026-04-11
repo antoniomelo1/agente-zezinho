@@ -1,6 +1,7 @@
 import { adminDb } from '../firebaseAdmin.js'
 import { ROLES } from '../constants/roles.js'
 import classificarStatusAtualizacao from './helpers/classificarStatusAtualizacao.js'
+import { resolverTemaDiaDerivado } from './helpers/resolverTemaDoRegistro.js'
 
 function formatarDataLocalISO(data) {
   const ano = data.getFullYear()
@@ -16,26 +17,6 @@ function normalizarDataISO(timestamp) {
   }
 
   return formatarDataLocalISO(timestamp.toDate())
-}
-
-function obterPesoStatus(status) {
-  if (status === 'sem_registro_recente') {
-    return 3
-  }
-
-  if (status === 'atencao') {
-    return 2
-  }
-
-  if (status === 'sem_registro') {
-    return 1
-  }
-
-  if (status === 'atualizado') {
-    return 0
-  }
-
-  return -1
 }
 
 function montarLeituraEducador(educador, registroSnap) {
@@ -64,7 +45,7 @@ function montarLeituraEducador(educador, registroSnap) {
     nomeEducador: dadosRegistro.nomeEducador || educador.nome,
     oficinaId: dadosRegistro.oficinaId || educador.oficinaId || '',
     dataUltimoRegistro,
-    temaDia: dadosRegistro.temaDia || '',
+    temaDia: resolverTemaDiaDerivado(dadosRegistro),
     modulo: dadosRegistro.modulo || '',
     tipoAula: dadosRegistro.tipoAula || '',
     totalPresentesManha: dadosRegistro.totalPresentesManha ?? null,
@@ -111,17 +92,17 @@ function consolidarOficinas(leituraEducadores) {
       oficina.educadoresSemRegistro += 1
     }
 
-    if (
-      obterPesoStatus(educador.statusAtualizacao) >
-      obterPesoStatus(oficina.statusAtualizacao)
-    ) {
-      oficina.statusAtualizacao = educador.statusAtualizacao
-    }
   }
 
-  return Array.from(oficinasMap.values()).sort((a, b) =>
-    a.oficinaId.localeCompare(b.oficinaId, 'pt-BR')
-  )
+  return Array.from(oficinasMap.values())
+    .map((oficina) => ({
+      ...oficina,
+      statusAtualizacao: classificarStatusAtualizacao(
+        oficina.dataUltimoRegistro,
+        oficina.oficinaId
+      )
+    }))
+    .sort((a, b) => a.oficinaId.localeCompare(b.oficinaId, 'pt-BR'))
 }
 
 export default async function listarLeituraOperacionalCoordenador() {

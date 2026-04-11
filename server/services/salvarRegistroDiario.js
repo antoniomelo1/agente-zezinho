@@ -1,4 +1,9 @@
 import admin, { adminDb } from '../firebaseAdmin.js'
+import {
+  resolverTemaDiaDerivado,
+  resolverTemaDiaManha,
+  resolverTemaDiaTarde
+} from './helpers/resolverTemaDoRegistro.js'
 
 const TIPOS_AULA_PADRAO = new Set([
   'aula regular',
@@ -13,6 +18,11 @@ function normalizarTexto(valor) {
   }
 
   return valor.trim()
+}
+
+function normalizarTextoOuNull(valor) {
+  const texto = normalizarTexto(valor)
+  return texto || null
 }
 
 function normalizarArray(valor) {
@@ -32,12 +42,16 @@ function normalizarTipoAula(valor) {
 }
 
 function validarPayload(payload = {}) {
+  const temaDia = normalizarTexto(payload.temaDia)
+  const temaDiaManha = normalizarTexto(payload.temaDiaManha)
+  const temaDiaTarde = normalizarTexto(payload.temaDiaTarde)
+
   if (!payload.data) {
     throw new Error('Data obrigatoria')
   }
 
-  if (!normalizarTexto(payload.modulo) || !normalizarTexto(payload.temaDia)) {
-    throw new Error('Modulo e tema do dia sao obrigatorios')
+  if (!normalizarTexto(payload.modulo) || !(temaDia || temaDiaManha || temaDiaTarde)) {
+    throw new Error('Modulo e ao menos um tema sao obrigatorios')
   }
 
   if (
@@ -102,6 +116,24 @@ export default async function salvarRegistroDiario({
   const observacoes = normalizarTexto(payload.observacoes)
   const totalPresentesManha = normalizarTotalPresentes(payload.totalPresentesManha)
   const totalPresentesTarde = normalizarTotalPresentes(payload.totalPresentesTarde)
+  const temaDiaResolvido = resolverTemaDiaDerivado(payload)
+  const temaDiaManha = normalizarTextoOuNull(resolverTemaDiaManha(payload))
+  const temaDiaTarde = normalizarTextoOuNull(resolverTemaDiaTarde(payload))
+  const temaDia = temaDiaResolvido || normalizarTexto(payload.temaDia)
+
+  console.log('[salvarRegistroDiario] tema derivado', {
+    temaDiaManha,
+    temaDiaTarde,
+    temaDia
+  })
+
+  if (!temaDiaManha && !temaDiaTarde && !temaDia) {
+    console.warn('[salvarRegistroDiario] registro sem tema definido', {
+      temaDiaManha,
+      temaDiaTarde,
+      temaDia
+    })
+  }
 
   const registroNormalizado = {
     data: admin.firestore.Timestamp.fromDate(dataConvertida),
@@ -112,7 +144,9 @@ export default async function salvarRegistroDiario({
     oficinaId: educador.oficinaId || null,
     modulo: normalizarTexto(payload.modulo),
     tipoAula: normalizarTipoAula(payload.tipoAula),
-    temaDia: normalizarTexto(payload.temaDia),
+    temaDia,
+    temaDiaManha,
+    temaDiaTarde,
     temaAnterior: normalizarTexto(payload.temaAnterior),
     resumoManha,
     resumoTarde,

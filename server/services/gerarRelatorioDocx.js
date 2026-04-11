@@ -1,5 +1,3 @@
-// services/gerarRelatorioDocx.js
-
 import {
   Document,
   Packer,
@@ -11,25 +9,22 @@ import {
   WidthType,
   TextRun,
   AlignmentType
-} from "docx"
+} from 'docx'
 
 export default async function gerarRelatorioDocx(relatorio) {
-
   const children = []
 
-  // ===== PARÁGRAFO INSTITUCIONAL (1.5) =====
   const paragrafoInstitucional = (texto) =>
     new Paragraph({
       alignment: AlignmentType.JUSTIFIED,
       spacing: {
         line: 360,
-        lineRule: "auto",
+        lineRule: 'auto',
         after: 200
       },
       children: [new TextRun(texto)]
     })
 
-  // ===== CÉLULA PADRÃO (50%) =====
   const celulaPadrao = (conteudo) =>
     new TableCell({
       width: { size: 50, type: WidthType.PERCENTAGE },
@@ -42,7 +37,6 @@ export default async function gerarRelatorioDocx(relatorio) {
       children: [conteudo]
     })
 
-  // ===== TÍTULO =====
   children.push(
     new Paragraph({
       text: relatorio.cabecalho.titulo,
@@ -54,30 +48,27 @@ export default async function gerarRelatorioDocx(relatorio) {
 
   children.push(
     paragrafoInstitucional(
-      `Oficina de Programação - ${relatorio.cabecalho.mes}/${relatorio.cabecalho.ano}`
+      `Oficina de Programacao - ${relatorio.cabecalho.mes}/${relatorio.cabecalho.ano}`
     )
   )
 
-  // ===== DEFESA =====
   children.push(
     new Paragraph({
-      text: "1. Defesa do Projeto Aplicado",
+      text: '1. Defesa do Projeto Aplicado',
       heading: HeadingLevel.HEADING_2,
       spacing: { before: 300, after: 200 }
     })
   )
 
   relatorio.cabecalho.defesaProjetoAplicado
-    .split("\n")
-    .forEach(p => {
+    .split('\n')
+    .forEach((p) => {
       if (p.trim()) {
         children.push(paragrafoInstitucional(p.trim()))
       }
     })
 
-  // ===== SEMANAS =====
-  relatorio.semanas.forEach(semana => {
-
+  relatorio.semanas.forEach((semana) => {
     children.push(
       new Paragraph({
         text: `${semana.identificador} - ${semana.periodo}`,
@@ -86,8 +77,7 @@ export default async function gerarRelatorioDocx(relatorio) {
       })
     )
 
-    semana.dias.forEach(dia => {
-
+    semana.dias.forEach((dia) => {
       children.push(
         new Paragraph({
           text: `Data: ${dia.dataFormatada}`,
@@ -97,34 +87,33 @@ export default async function gerarRelatorioDocx(relatorio) {
       )
 
       children.push(
-        paragrafoInstitucional(`Módulo: ${dia.modulo}`),
-        paragrafoInstitucional(`Tema do dia: ${dia.temaDia}`),
+        paragrafoInstitucional(`Modulo: ${dia.modulo}`),
+        paragrafoInstitucional(`Tema da manha: ${dia.temaDiaManha}`),
+        paragrafoInstitucional(`Tema da tarde: ${dia.temaDiaTarde}`),
+        paragrafoInstitucional(`Tema consolidado do dia: ${dia.temaDia}`),
         paragrafoInstitucional(`Tema anterior: ${dia.temaAnterior}`),
         paragrafoInstitucional(`Soft Skills desenvolvidas: ${dia.softSkillsDesenvolvidas}`)
       )
 
-      // ===== TABELA ATIVIDADES =====
       children.push(
         new Table({
           width: { size: 100, type: WidthType.PERCENTAGE },
           rows: [
-
             new TableRow({
               children: [
                 celulaPadrao(
                   new Paragraph({
-                    children: [new TextRun({ text: "Atividades Realizadas", bold: true })]
+                    children: [new TextRun({ text: 'Atividades Realizadas', bold: true })]
                   })
                 ),
                 celulaPadrao(
                   new Paragraph({
-                    children: [new TextRun({ text: "Resultados", bold: true })]
+                    children: [new TextRun({ text: 'Resultados', bold: true })]
                   })
                 )
               ]
             }),
-
-            ...dia.tabelaDiaria.map(linha =>
+            ...dia.tabelaDiaria.map((linha) =>
               new TableRow({
                 children: [
                   celulaPadrao(paragrafoInstitucional(linha.atividade)),
@@ -136,10 +125,9 @@ export default async function gerarRelatorioDocx(relatorio) {
         })
       )
 
-      // ===== REGISTROS FOTOGRÁFICOS =====
       children.push(
         new Paragraph({
-          text: "Registros Fotográficos",
+          text: 'Registros Fotograficos',
           heading: HeadingLevel.HEADING_4,
           spacing: { before: 250, after: 120 }
         })
@@ -153,28 +141,26 @@ export default async function gerarRelatorioDocx(relatorio) {
               children: [
                 new TableCell({
                   width: { size: 33, type: WidthType.PERCENTAGE },
-                  children: [new Paragraph("Inserir foto")]
+                  children: [new Paragraph('Inserir foto')]
                 }),
                 new TableCell({
                   width: { size: 33, type: WidthType.PERCENTAGE },
-                  children: [new Paragraph("Inserir foto")]
+                  children: [new Paragraph('Inserir foto')]
                 }),
                 new TableCell({
                   width: { size: 33, type: WidthType.PERCENTAGE },
-                  children: [new Paragraph("Inserir foto")]
+                  children: [new Paragraph('Inserir foto')]
                 })
               ]
             })
           ]
         })
       )
-
     })
 
-    // ===== PARECER =====
     children.push(
       new Paragraph({
-        text: "Parecer Técnico do Educador",
+        text: 'Parecer Tecnico do Educador',
         heading: HeadingLevel.HEADING_3,
         spacing: { before: 300, after: 150 }
       })
@@ -182,13 +168,14 @@ export default async function gerarRelatorioDocx(relatorio) {
 
     children.push(paragrafoInstitucional(semana.parecerTecnico))
 
-    // ===== LINHA DIVISÓRIA SIMPLES =====
     children.push(
       new Paragraph({
         alignment: AlignmentType.CENTER,
         spacing: { before: 200, after: 200 },
         children: [
-          new TextRun("────────────────────────────────────────────────────────────────")
+          new TextRun(
+            '----------------------------------------------------------------'
+          )
         ]
       })
     )

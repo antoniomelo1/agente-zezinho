@@ -1,77 +1,73 @@
-// services/gerarTabelaDiaria.js
 import fetch from 'node-fetch'
 
 export default async function gerarTabelaDiaria({
   resumoManha,
   resumoTarde,
+  temaDiaManha,
+  temaDiaTarde,
   temaDia,
   temaAnterior,
   tipoAula
 }) {
-
   const OPENAI_API_KEY = process.env.OPENAI_API_KEY
 
   if (!OPENAI_API_KEY) {
-    throw new Error('OPENAI_API_KEY não encontrada no ambiente')
+    throw new Error('OPENAI_API_KEY nao encontrada no ambiente')
   }
 
   const registroDiario = `
-Manhã:
-${resumoManha || 'Não informado'}
+Tema da manha:
+${temaDiaManha || 'Nao informado'}
+
+Tema da tarde:
+${temaDiaTarde || 'Nao informado'}
+
+Tema consolidado do dia:
+${temaDia || 'Nao informado'}
+
+Manha:
+${resumoManha || 'Nao informado'}
 
 Tarde:
-${resumoTarde || 'Não informado'}
-
-Tema da aula:
-${temaDia || 'Não informado'}
+${resumoTarde || 'Nao informado'}
 
 Tema da aula anterior:
-${temaAnterior || 'Não informado'}
+${temaAnterior || 'Nao informado'}
 
 Tipo de aula:
-${tipoAula || 'Não informado'}
+${tipoAula || 'Nao informado'}
 `
 
-const prompt = `
-Você é um redator pedagógico institucional responsável por registrar
-formalmente as atividades da Oficina de Programação da Casa do Zezinho.
+  const prompt = `
+Voce e um redator pedagogico institucional responsavel por registrar
+formalmente as atividades da Oficina de Programacao da Casa do Zezinho.
 
 Com base exclusivamente no registro abaixo, gere exatamente 3 atividades
 com seus respectivos resultados observados.
 
-REGRAS OBRIGATÓRIAS:
+REGRAS OBRIGATORIAS:
 
-- Utilize apenas informações presentes no registro.
+- Utilize apenas informacoes presentes no registro.
+- Trate tema da manha e tema da tarde como fontes principais.
+- Use o tema consolidado do dia apenas como compatibilidade quando necessario.
+- Quando houver divergencia entre o tema consolidado e os temas por periodo, priorize sempre os temas da manha e da tarde.
+- Nao use o tema consolidado do dia para sobrescrever ou reinterpretar os temas por periodo.
+- Se o tema consolidado estiver ausente, trabalhe normalmente apenas com os temas por periodo.
+- Nao invente informacoes para compensar ausencia, resumo incompleto ou divergencia no tema consolidado do dia.
 - Linguagem institucional, formal, objetiva e avaliativa.
 - Nunca utilize a palavra "alunos".
-- Utilize variações adequadas como:
-  "zezinhos", "Estudantes", "jovens", "participantes", "integrantes da turma", "grupo".
-- Evite repetir o mesmo termo no início dos resultados.
-- É proibido iniciar todos os resultados com "Os", "Os jovens",
-  "Os zezinhos" ou estrutura semelhante.
-- Varie a construção das frases.
-- Alterne entre voz ativa e voz passiva quando adequado.
-- Utilize construções como:
-  "Observou-se", "Verificou-se", "Evidenciou-se",
-  "Notou-se", "Houve", "Foi possível identificar",
-  "A turma apresentou", "O grupo demonstrou".
+- Utilize variacoes adequadas como:
+  "zezinhos", "jovens", "participantes", "integrantes da turma", "grupo".
+- Evite repetir o mesmo termo no inicio dos resultados.
+- Varie a construcao das frases.
 - Os resultados devem estar obrigatoriamente no passado.
-- Nunca utilize verbos no futuro como:
-  "deve", "devem", "deveria", "será", "serão",
-  "precisa", "precisam".
-- Não escreva instruções.
-- Não escreva orientações.
-- Não escreva explicações teóricas.
+- Nao escreva instrucoes, orientacoes ou explicacoes teoricas.
 - Registre apenas o que foi realizado e o que foi observado.
-- Descreva evidências concretas de aprendizagem.
+- Descreva evidencias concretas de aprendizagem.
 - Gere exatamente 3 itens.
 - Use exclusivamente as chaves:
   "atividade" e "resultado".
-- Retorne apenas JSON válido.
-
-IMPORTANTE:
-Os resultados não podem ter estruturas repetitivas.
-Evite iniciar frases consecutivas com o mesmo sujeito ou padrão.
+- Retorne apenas JSON valido.
 
 FORMATO EXATO:
 
@@ -94,7 +90,7 @@ ${registroDiario}
     body: JSON.stringify({
       model: 'gpt-4o',
       messages: [
-        { role: 'system', content: 'Você é um agente pedagógico institucional.' },
+        { role: 'system', content: 'Voce e um agente pedagogico institucional.' },
         { role: 'user', content: prompt }
       ],
       temperature: 0.2
@@ -105,7 +101,7 @@ ${registroDiario}
   const texto = dataIA.choices?.[0]?.message?.content
 
   if (!texto) {
-    throw new Error('IA não retornou conteúdo')
+    throw new Error('IA nao retornou conteudo')
   }
 
   let tabela = null
@@ -119,27 +115,24 @@ ${registroDiario}
     }
   }
 
-  // Se vier objeto único
   if (tabela && !Array.isArray(tabela)) {
     tabela = [tabela]
   }
 
-  // 🔥 NORMALIZA CHAVE INCORRETA "por" PARA "resultado"
   if (Array.isArray(tabela)) {
-    tabela = tabela.map(item => {
+    tabela = tabela.map((item) => {
       if (item.por && !item.resultado) {
         return {
           atividade: item.atividade,
           resultado: item.por
         }
       }
+
       return item
     })
   }
 
-  // Se veio apenas 1 item, completa para 3
   if (Array.isArray(tabela) && tabela.length === 1) {
-
     const item = tabela[0]
 
     if (
@@ -153,27 +146,26 @@ ${registroDiario}
         },
         {
           atividade: 'Continuidade das atividades propostas',
-          resultado: 'Desenvolvimento progressivo das competências trabalhadas'
+          resultado: 'Desenvolvimento progressivo das competencias trabalhadas'
         },
         {
-          atividade: 'Encerramento e consolidação do conteúdo',
-          resultado: 'Fixação dos conceitos abordados durante a aula'
+          atividade: 'Encerramento e consolidacao do conteudo',
+          resultado: 'Fixacao dos conceitos abordados durante a aula'
         }
       ]
     }
   }
 
-  // Validação final
   if (
     !Array.isArray(tabela) ||
     tabela.length !== 3 ||
     !tabela.every(
-      item =>
+      (item) =>
         typeof item.atividade === 'string' &&
         typeof item.resultado === 'string'
     )
   ) {
-    throw new Error('Tabela diária inválida estruturalmente')
+    throw new Error('Tabela diaria invalida estruturalmente')
   }
 
   return tabela
