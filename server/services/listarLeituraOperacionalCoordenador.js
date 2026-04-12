@@ -19,6 +19,81 @@ function normalizarDataISO(timestamp) {
   return formatarDataLocalISO(timestamp.toDate())
 }
 
+function normalizarTexto(value) {
+  if (value === null || value === undefined) {
+    return ''
+  }
+
+  return String(value).trim()
+}
+
+function normalizarDataFiltro(value) {
+  const dataTexto = normalizarTexto(value)
+
+  if (!dataTexto) {
+    return ''
+  }
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dataTexto)) {
+    return ''
+  }
+
+  const data = new Date(`${dataTexto}T00:00:00`)
+
+  if (Number.isNaN(data.getTime())) {
+    return ''
+  }
+
+  return dataTexto
+}
+
+function montarRegistroHistorico(doc) {
+  const dadosRegistro = doc.data()
+
+  return {
+    id: doc.id,
+    dataRegistro: normalizarDataISO(dadosRegistro.data),
+    temaDia: resolverTemaDiaDerivado(dadosRegistro),
+    tipoAula: dadosRegistro.tipoAula || '',
+    modulo: dadosRegistro.modulo || '',
+    resumoManha: dadosRegistro.resumoManha || '',
+    resumoTarde: dadosRegistro.resumoTarde || '',
+    totalPresentesManha: dadosRegistro.totalPresentesManha ?? null,
+    totalPresentesTarde: dadosRegistro.totalPresentesTarde ?? null,
+    totalPresentes: dadosRegistro.totalPresentes ?? null
+  }
+}
+
+async function listarHistoricoEducador({ educadorId, oficinaId, data }) {
+  const dataFiltro = normalizarDataFiltro(data)
+
+  const snapshot = await adminDb
+    .collection('registros_diarios')
+    .where('uidEducador', '==', educadorId)
+    .where('excluido', '==', false)
+    .orderBy('data', 'desc')
+    .get()
+
+  const registrosFiltrados = snapshot.docs.filter((doc) => {
+    const dadosRegistro = doc.data()
+    const dataRegistro = normalizarDataISO(dadosRegistro.data)
+
+    if ((dadosRegistro.oficinaId || '') !== oficinaId) {
+      return false
+    }
+
+    if (dataFiltro && dataRegistro !== dataFiltro) {
+      return false
+    }
+
+    return true
+  })
+
+  return registrosFiltrados
+    .slice(0, dataFiltro ? 1 : 3)
+    .map(montarRegistroHistorico)
+}
+
 function montarLeituraEducador(educador, registroSnap) {
   if (!registroSnap?.exists) {
     return {
@@ -105,7 +180,12 @@ function consolidarOficinas(leituraEducadores) {
     .sort((a, b) => a.oficinaId.localeCompare(b.oficinaId, 'pt-BR'))
 }
 
-export default async function listarLeituraOperacionalCoordenador() {
+export default async function listarLeituraOperacionalCoordenador(filtros = {}) {
+  const oficinaIdFiltro = normalizarTexto(filtros.oficinaId)
+  const educadorIdFiltro = normalizarTexto(filtros.educadorId)
+  const dataFiltro = normalizarDataFiltro(filtros.data)
+  const detalharHistorico = Boolean(oficinaIdFiltro && educadorIdFiltro)
+
   const educadoresSnapshot = await adminDb
     .collection('usuarios')
     .where('role', '==', ROLES.EDUCADOR)
@@ -140,9 +220,19 @@ export default async function listarLeituraOperacionalCoordenador() {
     montarLeituraEducador(educador, registrosRecentes[index].docs[0] || null)
   )
 
-  return {
+  const resposta = {
     geradoEm: new Date().toISOString(),
     oficinas: consolidarOficinas(leituraEducadores),
     educadores: leituraEducadores
   }
+
+  if (detalharHistorico) {
+    resposta.historicoRegistros = await listarHistoricoEducador({
+      educadorId: educadorIdFiltro,
+      oficinaId: oficinaIdFiltro,
+      data: dataFiltro
+    })
+  }
+
+  return resposta
 }

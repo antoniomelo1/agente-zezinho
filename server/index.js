@@ -173,7 +173,11 @@ app.get(
   requireRole([ROLES.COORDENADOR]),
   async (req, res) => {
     try {
-      const leitura = await listarLeituraOperacionalCoordenador()
+      const leitura = await listarLeituraOperacionalCoordenador({
+        oficinaId: req.query.oficinaId,
+        educadorId: req.query.educadorId,
+        data: req.query.data
+      })
       res.json(leitura)
     } catch (error) {
       console.error(error)

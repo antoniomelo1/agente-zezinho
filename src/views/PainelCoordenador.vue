@@ -19,11 +19,13 @@ const ultimoEducadorCriado = ref(null)
 const educadores = ref([])
 const leituraOperacional = ref({
   oficinas: [],
-  educadores: []
+  educadores: [],
+  historicoRegistros: []
 })
 const isEducadoresOpen = ref(false)
 const selectedOficinaId = ref('')
 const selectedEducadorId = ref('')
+const selectedData = ref('')
 
 async function obterToken() {
   const usuario = auth.currentUser
@@ -120,8 +122,23 @@ async function carregarLeituraOperacional() {
 
   try {
     const token = await obterToken()
+    const query = new URLSearchParams()
 
-    const response = await fetch(`${API_URL}/coordenador/leitura-operacional`, {
+    if (selectedOficinaId.value && selectedEducadorId.value) {
+      query.set('oficinaId', selectedOficinaId.value)
+      query.set('educadorId', selectedEducadorId.value)
+
+      if (selectedData.value) {
+        query.set('data', selectedData.value)
+      }
+    }
+
+    const queryString = query.toString()
+    const url = queryString
+      ? `${API_URL}/coordenador/leitura-operacional?${queryString}`
+      : `${API_URL}/coordenador/leitura-operacional`
+
+    const response = await fetch(url, {
       headers: {
         Authorization: `Bearer ${token}`
       }
@@ -135,7 +152,10 @@ async function carregarLeituraOperacional() {
 
     leituraOperacional.value = {
       oficinas: Array.isArray(data.oficinas) ? data.oficinas : [],
-      educadores: Array.isArray(data.educadores) ? data.educadores : []
+      educadores: Array.isArray(data.educadores) ? data.educadores : [],
+      historicoRegistros: Array.isArray(data.historicoRegistros)
+        ? data.historicoRegistros
+        : []
     }
   } catch (error) {
     erroLeituraOperacional.value =
@@ -257,6 +277,20 @@ function textoPresencaPorPeriodo(educador) {
   return textoPresenca(educador?.totalPresentes)
 }
 
+function textoResumos(registro) {
+  const blocos = []
+
+  if (registro?.resumoManha) {
+    blocos.push(`Manha: ${registro.resumoManha}`)
+  }
+
+  if (registro?.resumoTarde) {
+    blocos.push(`Tarde: ${registro.resumoTarde}`)
+  }
+
+  return blocos.join(' | ') || 'Sem resumo registrado'
+}
+
 function textoCampo(value, fallback = 'Nao informado') {
   if (value === null || value === undefined) {
     return fallback
@@ -277,6 +311,10 @@ const educadoresDisponiveis = computed(() => {
       String(a.nomeEducador || '').localeCompare(String(b.nomeEducador || ''), 'pt-BR')
     )
 })
+
+const isDetalhamentoAtivo = computed(
+  () => Boolean(selectedOficinaId.value && selectedEducadorId.value)
+)
 
 const oficinasFiltradas = computed(() => {
   if (!selectedOficinaId.value) {
@@ -307,6 +345,7 @@ const educadoresFiltrados = computed(() => {
 watch(selectedOficinaId, (novaOficinaId) => {
   if (!novaOficinaId) {
     selectedEducadorId.value = ''
+    selectedData.value = ''
     return
   }
 
@@ -317,6 +356,16 @@ watch(selectedOficinaId, (novaOficinaId) => {
   if (!educadorPertenceAOficina) {
     selectedEducadorId.value = ''
   }
+})
+
+watch(selectedEducadorId, (novoEducadorId) => {
+  if (!novoEducadorId) {
+    selectedData.value = ''
+  }
+})
+
+watch([selectedOficinaId, selectedEducadorId, selectedData], () => {
+  carregarLeituraOperacional()
 })
 
 onMounted(() => {
@@ -500,6 +549,15 @@ onMounted(() => {
               </option>
             </select>
           </label>
+
+          <label class="filtro-campo">
+            <span>Data especifica</span>
+            <input
+              v-model="selectedData"
+              type="date"
+              :disabled="!isDetalhamentoAtivo"
+            />
+          </label>
         </div>
 
         <div class="resumo-oficinas">
@@ -593,6 +651,46 @@ onMounted(() => {
             </tbody>
           </table>
         </div>
+
+        <section v-if="isDetalhamentoAtivo" class="historico-registros">
+          <div class="bloco-titulo">
+            <h4 class="card-titulo">Historico recente do educador</h4>
+            <span class="listagem-subtexto">
+              {{ selectedData ? 'Registro encontrado para a data informada' : 'Ultimos 3 registros mais recentes' }}
+            </span>
+          </div>
+
+          <p
+            v-if="leituraOperacional.historicoRegistros.length === 0"
+            class="estado-listagem"
+          >
+            {{
+              selectedData
+                ? 'Nenhum registro encontrado para a data informada.'
+                : 'Nenhum registro recente encontrado para este educador nesta oficina.'
+            }}
+          </p>
+
+          <div v-else class="historico-lista">
+            <article
+              v-for="registro in leituraOperacional.historicoRegistros"
+              :key="registro.id"
+              class="historico-item"
+            >
+              <div class="historico-topo">
+                <strong>{{ formatarDataRegistro(registro.dataRegistro) }}</strong>
+                <span class="status-badge historico-tipo">
+                  {{ textoCampo(registro.tipoAula) }}
+                </span>
+              </div>
+
+              <p><span>Tema</span><strong>{{ textoCampo(registro.temaDia) }}</strong></p>
+              <p><span>Modulo</span><strong>{{ textoCampo(registro.modulo) }}</strong></p>
+              <p><span>Presentes</span><strong>{{ textoPresencaPorPeriodo(registro) }}</strong></p>
+              <p><span>Resumo</span><strong>{{ textoResumos(registro) }}</strong></p>
+            </article>
+          </div>
+        </section>
       </template>
     </section>
   </div>
@@ -692,7 +790,7 @@ onMounted(() => {
 
 .filtros-operacionais {
   display: grid;
-  grid-template-columns: repeat(2, minmax(220px, 280px));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 280px));
   gap: 14px;
   align-items: end;
 }
@@ -851,6 +949,63 @@ button:hover:not(:disabled) {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
   gap: 18px;
+}
+
+.historico-registros {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 22px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 18px;
+  background: rgba(2, 6, 23, 0.34);
+}
+
+.historico-lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.historico-item {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(15, 23, 42, 0.78);
+}
+
+.historico-item p {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  color: #cbd5e1;
+}
+
+.historico-item span {
+  color: #94a3b8;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.historico-item strong {
+  color: #f8fafc;
+  line-height: 1.45;
+}
+
+.historico-topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.historico-tipo {
+  color: #cbd5e1;
 }
 
 .card-resumo-oficina {
