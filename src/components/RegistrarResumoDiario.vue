@@ -12,37 +12,41 @@ function gerarDataLocalInput(data = new Date()) {
   return `${ano}-${mes}-${dia}`
 }
 
-// ===== ESTADO DO FORMULÁRIO =====
-const registro = ref({
+const estadoInicialRegistro = () => ({
   data: gerarDataLocalInput(),
   modulo: '',
   tipoAula: 'aula regular',
   temaDia: '',
+  temaDiaManha: '',
+  temaDiaTarde: '',
+  temaTardeDiferente: false,
   temaAnterior: '',
   resumoManha: '',
   resumoTarde: '',
   softOriente: '',
   softCoracao: '',
-  projetoFinal: 'não trabalhado',
-  projetoHackathon: 'não iniciado',
+  projetoFinal: 'nao trabalhado',
+  projetoHackathon: 'nao iniciado',
   totalPresentesManha: '',
   totalPresentesTarde: '',
   observacoes: '',
   fotos: []
 })
 
-// ===== DIA DA SEMANA AUTOMÁTICO =====
+const registro = ref(estadoInicialRegistro())
+
 const diaSemana = computed(() => {
   const dias = [
     'Domingo',
     'Segunda-feira',
-    'Terça-feira',
+    'Terca-feira',
     'Quarta-feira',
     'Quinta-feira',
     'Sexta-feira',
-    'Sábado'
+    'Sabado'
   ]
-  const data = new Date(registro.value.data + 'T00:00:00')
+  const data = new Date(`${registro.value.data}T00:00:00`)
+
   return dias[data.getDay()]
 })
 
@@ -55,22 +59,46 @@ function normalizarNumeroOpcional(valor) {
   return Number.isFinite(numero) ? numero : null
 }
 
-// ===== UPLOAD DE FOTOS =====
+function normalizarTextoOpcional(valor) {
+  if (typeof valor !== 'string') {
+    return ''
+  }
+
+  return valor.trim()
+}
+
+function obterTemaDiaCompatibilidade() {
+  const temaManha = normalizarTextoOpcional(registro.value.temaDiaManha)
+  const temaTarde = normalizarTextoOpcional(registro.value.temaDiaTarde)
+
+  if (temaManha && temaTarde) {
+    return `${temaManha} / ${temaTarde}`
+  }
+
+  return temaManha || temaTarde || normalizarTextoOpcional(registro.value.temaDia)
+}
+
 function handleFotos(event) {
   registro.value.fotos = Array.from(event.target.files)
 }
 
-// ===== SALVAR REGISTRO =====
+function alternarTemaTardeDiferente() {
+  if (!registro.value.temaTardeDiferente) {
+    registro.value.temaDiaTarde = ''
+  }
+}
+
 async function salvarRegistro() {
   try {
-    // validações mínimas
-    if (!registro.value.modulo || !registro.value.temaDia) {
-      alert('Informe o módulo e o tema da aula.')
+    const temaDiaCompatibilidade = obterTemaDiaCompatibilidade()
+
+    if (!registro.value.modulo || !temaDiaCompatibilidade) {
+      alert('Informe o modulo e ao menos um tema da aula.')
       return
     }
 
     if (!registro.value.resumoManha && !registro.value.resumoTarde) {
-      alert('Informe ao menos um resumo (manhã ou tarde).')
+      alert('Informe ao menos um resumo (manha ou tarde).')
       return
     }
 
@@ -91,6 +119,11 @@ async function salvarRegistro() {
       },
       body: JSON.stringify({
         ...registro.value,
+        temaDia: temaDiaCompatibilidade,
+        temaDiaManha: normalizarTextoOpcional(registro.value.temaDiaManha),
+        temaDiaTarde: registro.value.temaTardeDiferente
+          ? normalizarTextoOpcional(registro.value.temaDiaTarde)
+          : null,
         totalPresentesManha: normalizarNumeroOpcional(registro.value.totalPresentesManha),
         totalPresentesTarde: normalizarNumeroOpcional(registro.value.totalPresentesTarde)
       })
@@ -110,58 +143,38 @@ async function salvarRegistro() {
   }
 }
 
-// ===== LIMPAR FORMULÁRIO =====
 function limparFormulario() {
-  registro.value = {
-    data: gerarDataLocalInput(),
-    modulo: '',
-    tipoAula: 'aula regular',
-    temaDia: '',
-    temaAnterior: '',
-    resumoManha: '',
-    resumoTarde: '',
-    softOriente: '',
-    softCoracao: '',
-    projetoFinal: 'não trabalhado',
-    projetoHackathon: 'não iniciado',
-    totalPresentesManha: '',
-    totalPresentesTarde: '',
-    observacoes: '',
-    fotos: []
-  }
+  registro.value = estadoInicialRegistro()
 }
-
 </script>
 
 <template>
   <section class="registro-container">
-
     <header class="registro-header">
-      <h2>Registro Diário da Oficina de Programação</h2>
-      <p>Base pedagógica para o Relatório de Execução Mensal</p>
+      <h2>Registro Diario da Oficina de Programacao</h2>
+      <p>Base pedagogica para o Relatorio de Execucao Mensal</p>
     </header>
 
-    <!-- IDENTIFICAÇÃO -->
     <div class="card">
-      <h3>Identificação do dia</h3>
+      <h3>Identificacao do dia</h3>
       <label>
-        Módulo em estudo
+        Modulo em estudo
         <input
-          type="text"
           v-model="registro.modulo"
-          placeholder="Ex: Primeiros Passos na Programação"
+          type="text"
+          placeholder="Ex: Primeiros Passos na Programacao"
         />
       </label>
 
       <div class="grid">
         <label>
           Data da aula
-          <input type="date" v-model="registro.data" />
+          <input v-model="registro.data" type="date" />
         </label>
 
         <label>
           Dia da semana
-          <input type="text" :value="diaSemana" disabled />
+          <input :value="diaSemana" type="text" disabled />
         </label>
       </div>
 
@@ -169,148 +182,157 @@ function limparFormulario() {
         Tipo de aula
         <select v-model="registro.tipoAula">
           <option>aula regular</option>
-          <option>aulão</option>
+          <option>aulao</option>
           <option>projeto</option>
           <option>hackathon</option>
         </select>
       </label>
     </div>
 
-    <!-- CONTEXTO -->
     <div class="card">
-      <h3>Contexto pedagógico</h3>
+      <h3>Contexto pedagogico</h3>
 
       <label>
-        Tema da aula do dia
+        Tema da aula da manha
         <input
+          v-model="registro.temaDiaManha"
           type="text"
-          v-model="registro.temaDia"
-          placeholder="Ex: JavaScript – Funções e eventos"
+          placeholder="Ex: JavaScript - Funcoes e eventos"
+        />
+      </label>
+
+      <label class="checkbox-label">
+        <input
+          v-model="registro.temaTardeDiferente"
+          type="checkbox"
+          @change="alternarTemaTardeDiferente"
+        />
+        <span>Tema diferente no periodo da tarde</span>
+      </label>
+
+      <label v-if="registro.temaTardeDiferente">
+        Tema da aula da tarde
+        <input
+          v-model="registro.temaDiaTarde"
+          type="text"
+          placeholder="Ex: Scratch - Variaveis e condicoes"
         />
       </label>
 
       <label>
         Tema da aula anterior
         <input
-          type="text"
           v-model="registro.temaAnterior"
-          placeholder="Ex: Estrutura HTML básica"
+          type="text"
+          placeholder="Ex: Estrutura HTML basica"
         />
       </label>
     </div>
 
-    <!-- MANHÃ -->
     <div class="card">
-      <h3>Resumo do período da manhã</h3>
+      <h3>Resumo do periodo da manha</h3>
       <label>
-        Presença da manhã
+        Presenca da manha
         <input
+          v-model="registro.totalPresentesManha"
           type="number"
           min="0"
-          v-model="registro.totalPresentesManha"
-          placeholder="Quantidade de alunos presentes"
+          placeholder="Quantidade de participantes presentes"
         />
       </label>
       <textarea
         v-model="registro.resumoManha"
-        rows="4" 
+        rows="4"
         placeholder="Descreva o que foi trabalhado..."
       ></textarea>
     </div>
 
     <div class="card">
-      <h3>Resumo do período da tarde</h3>
+      <h3>Resumo do periodo da tarde</h3>
       <label>
-        Presença da tarde
+        Presenca da tarde
         <input
+          v-model="registro.totalPresentesTarde"
           type="number"
           min="0"
-          v-model="registro.totalPresentesTarde"
-          placeholder="Quantidade de alunos presentes"
+          placeholder="Quantidade de participantes presentes"
         />
       </label>
       <textarea
         v-model="registro.resumoTarde"
-        rows="4" 
+        rows="4"
         placeholder="Descreva o que foi trabalhado..."
       ></textarea>
     </div>
 
-    <!-- SOFT SKILLS -->
     <div class="card">
-      <h3>Soft skills por faixa etária</h3>
+      <h3>Soft skills por faixa etaria</h3>
 
       <label>
         Oriente
         <textarea
           v-model="registro.softOriente"
           rows="4"
-          placeholder="Atenção, participação, interação e postura geral do grupo."
+          placeholder="Atencao, participacao, interacao e postura geral do grupo."
         ></textarea>
       </label>
 
       <label>
-        Coração
+        Coracao
         <textarea
           v-model="registro.softCoracao"
           rows="4"
-          placeholder="Autonomia, responsabilidade, comunicação e postura formativa."
+          placeholder="Autonomia, responsabilidade, comunicacao e postura formativa."
         ></textarea>
       </label>
     </div>
 
-    <!-- PROJETOS -->
     <div class="card">
       <h3>Projetos em andamento</h3>
 
       <label>
         Projeto final
         <select v-model="registro.projetoFinal">
-          <option>não trabalhado</option>
-          <option>introdução</option>
+          <option>nao trabalhado</option>
+          <option>introducao</option>
           <option>desenvolvimento</option>
           <option>ajustes</option>
-          <option>finalização</option>
+          <option>finalizacao</option>
         </select>
       </label>
 
       <label>
         Projeto hackathon
         <select v-model="registro.projetoHackathon">
-          <option>não iniciado</option>
-          <option>preparação</option>
+          <option>nao iniciado</option>
+          <option>preparacao</option>
           <option>desenvolvimento</option>
           <option>entregue</option>
         </select>
       </label>
     </div>
 
-    <!-- EVIDÊNCIAS OCULTO NO MOMENTO --> 
     <div v-if="false" class="card">
-      <h3>Evidências do dia</h3>
+      <h3>Evidencias do dia</h3>
 
       <label>Fotos</label>
       <input type="file" multiple @change="handleFotos" />
     </div>
 
-
-    <!-- OBSERVAÇÕES -->
     <div class="card">
-      <h3>Observações gerais</h3>
+      <h3>Observacoes gerais</h3>
       <textarea
         v-model="registro.observacoes"
         rows="4"
-        placeholder="Imprevistos, ausências..."
+        placeholder="Imprevistos, ausencias..."
       ></textarea>
     </div>
 
-    <!-- AÇÃO -->
     <div class="acoes">
-      <button @click="salvarRegistro" class="btn-salvar">
+      <button class="btn-salvar" @click="salvarRegistro">
         Salvar registro do dia
       </button>
     </div>
-
   </section>
 </template>
 
@@ -318,7 +340,7 @@ function limparFormulario() {
 .registro-container {
   max-width: 720px;
   margin: 0 auto;
-  padding: 20px 20px; /* Reduzi o padding superior */
+  padding: 20px 20px;
 }
 
 .registro-header {
@@ -328,7 +350,7 @@ function limparFormulario() {
 
 .registro-header h2 {
   margin: 0;
-  color: #f8fafc; /* Texto claro para o tema dark */
+  color: #f8fafc;
 }
 
 .registro-header p {
@@ -338,7 +360,7 @@ function limparFormulario() {
 }
 
 .card {
-  background: rgba(30, 41, 59, 0.7); /* Fundo dark estilo card neon */
+  background: rgba(30, 41, 59, 0.7);
   padding: 20px;
   border-radius: 18px;
   margin-bottom: 20px;
@@ -348,7 +370,7 @@ function limparFormulario() {
 
 .card h3 {
   margin-bottom: 14px;
-  color: #00f2fe; /* Azul neon do Agente Zezinho */
+  color: #00f2fe;
   font-size: 0.95rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -364,9 +386,9 @@ label {
   color: #cbd5e1;
 }
 
-/* PADRONIZAÇÃO DE INPUTS E SELECTS (ALTURA REDUZIDA) */
-input, select {
-  height: 38px; /* Altura compacta conforme pedido */
+input,
+select {
+  height: 38px;
   border-radius: 10px;
   border: 1px solid #334155;
   padding: 0 12px;
@@ -376,9 +398,8 @@ input, select {
   transition: all 0.3s ease;
 }
 
-/* PADRONIZAÇÃO DE TODOS OS TEXTAREAS */
 textarea {
-  min-height: 90px; /* Mesma altura para Resumos, Soft Skills e Obs */
+  min-height: 90px;
   border-radius: 10px;
   border: 1px solid #334155;
   padding: 10px 12px;
@@ -389,17 +410,35 @@ textarea {
   transition: all 0.3s ease;
 }
 
-input:focus, select:focus, textarea:focus {
+input:focus,
+select:focus,
+textarea:focus {
   outline: none;
   border-color: #00f2fe;
   box-shadow: 0 0 8px rgba(0, 242, 254, 0.2);
 }
 
-/* Estilo para o campo desabilitado (Dia da semana) */
 input:disabled {
   background: rgba(15, 23, 42, 0.6);
   color: #64748b;
   cursor: not-allowed;
+}
+
+.checkbox-label {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.checkbox-label input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+}
+
+.checkbox-label span {
+  color: #cbd5e1;
 }
 
 .grid {
@@ -419,12 +458,11 @@ input:disabled {
   margin-top: 25px;
 }
 
-/* BOTÃO ESTILIZADO IGUAL AO MENU */
 .btn-salvar {
   background: linear-gradient(135deg, #00f2fe 0%, #7c3aed 100%) !important;
   color: #ffffff;
   border: none;
-  border-radius: 50px; /* Formato pílula igual ao cabeçalho */
+  border-radius: 50px;
   padding: 14px 40px;
   font-size: 0.9rem;
   font-weight: 700;

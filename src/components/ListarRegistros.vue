@@ -3,16 +3,34 @@ import { ref, onMounted, computed } from 'vue'
 import { collection, getDocs } from 'firebase/firestore'
 import { db } from '../firebase/firebase'
 
-// ===== ESTADO =====
 const registros = ref([])
 const carregando = ref(true)
 
-// ===== BUSCAR REGISTROS =====
+function normalizarTexto(valor) {
+  if (typeof valor !== 'string') {
+    return ''
+  }
+
+  return valor.trim()
+}
+
+function resolverTemaDoRegistro(registro) {
+  const temaManha = normalizarTexto(registro.temaDiaManha)
+  const temaTarde = normalizarTexto(registro.temaDiaTarde)
+  const temaLegado = normalizarTexto(registro.temaDia)
+
+  if (temaManha && temaTarde) {
+    return `${temaManha} / ${temaTarde}`
+  }
+
+  return temaManha || temaTarde || temaLegado || 'Nao informado'
+}
+
 async function carregarRegistros() {
   try {
     const snapshot = await getDocs(collection(db, 'registros_diarios'))
 
-    registros.value = snapshot.docs.map(doc => ({
+    registros.value = snapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data()
     }))
@@ -23,16 +41,12 @@ async function carregarRegistros() {
   }
 }
 
-// ===== ORDENAR POR DATA (RECENTE → ANTIGO) =====
 const registrosOrdenados = computed(() => {
-  return [...registros.value].sort((a, b) => {
-    return new Date(b.data) - new Date(a.data)
-  })
+  return [...registros.value].sort((a, b) => new Date(b.data) - new Date(a.data))
 })
 
-// ===== FORMATAR DATA =====
 function formatarData(data) {
-  const d = new Date(data + 'T00:00:00')
+  const d = new Date(`${data}T00:00:00`)
   return d.toLocaleDateString('pt-BR')
 }
 
@@ -41,10 +55,9 @@ onMounted(carregarRegistros)
 
 <template>
   <section class="lista-container">
-
     <header class="lista-header">
-      <h2>Registros Diários</h2>
-      <p>Histórico de aulas registradas</p>
+      <h2>Registros Diarios</h2>
+      <p>Historico de aulas registradas</p>
     </header>
 
     <div v-if="carregando" class="loading">
@@ -68,17 +81,16 @@ onMounted(carregarRegistros)
           </div>
 
           <div class="linha-secundaria">
-            Tema: {{ registro.temaDia || 'Não informado' }}
+            Tema: {{ resolverTemaDoRegistro(registro) }}
           </div>
 
           <div class="status">
-            <span v-if="registro.resumoManha">✔ Manhã</span>
-            <span v-if="registro.resumoTarde">✔ Tarde</span>
+            <span v-if="registro.resumoManha">Manha</span>
+            <span v-if="registro.resumoTarde">Tarde</span>
           </div>
         </li>
       </ul>
     </div>
-
   </section>
 </template>
 
@@ -123,7 +135,7 @@ onMounted(carregarRegistros)
   padding: 20px;
   border-radius: 16px;
   margin-bottom: 16px;
-  box-shadow: 0 8px 16px rgba(0,0,0,0.05);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.05);
 }
 
 .linha-principal {

@@ -14,7 +14,7 @@ async function obterToken() {
   const usuario = auth.currentUser
 
   if (!usuario) {
-    throw new Error('Usuário não autenticado.')
+    throw new Error('Usuario nao autenticado.')
   }
 
   return await usuario.getIdToken()
@@ -22,7 +22,7 @@ async function obterToken() {
 
 async function gerarRelatorio() {
   if (!mes.value || !ano.value) {
-    erro.value = 'Informe mês e ano.'
+    erro.value = 'Informe mes e ano.'
     return
   }
 
@@ -48,7 +48,7 @@ async function gerarRelatorio() {
     const data = await response.json()
 
     if (!response.ok) {
-      erro.value = data.erro || 'Erro ao gerar relatório.'
+      erro.value = data.erro || 'Erro ao gerar relatorio.'
       return
     }
 
@@ -59,7 +59,7 @@ async function gerarRelatorio() {
 
     relatorio.value = data
   } catch (e) {
-    erro.value = e.message || 'Erro ao gerar relatório.'
+    erro.value = e.message || 'Erro ao gerar relatorio.'
     console.error(e)
   } finally {
     carregando.value = false
@@ -86,7 +86,6 @@ async function exportarDocx() {
     }
 
     const blob = await response.blob()
-
     const url = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
@@ -99,18 +98,16 @@ async function exportarDocx() {
     erro.value = e.message || 'Erro ao exportar DOCX.'
   }
 }
-
 </script>
 
 <template>
   <main class="relatorio-container">
-
     <section class="controle">
       <select v-model="mes">
-        <option value="">Mês</option>
+        <option value="">Mes</option>
         <option value="1">Janeiro</option>
         <option value="2">Fevereiro</option>
-        <option value="3">Março</option>
+        <option value="3">Marco</option>
         <option value="4">Abril</option>
         <option value="5">Maio</option>
         <option value="6">Junho</option>
@@ -122,34 +119,31 @@ async function exportarDocx() {
         <option value="12">Dezembro</option>
       </select>
 
-      <input type="number" placeholder="Ano" v-model="ano" />
+      <input v-model="ano" type="number" placeholder="Ano" />
 
-      <button @click="gerarRelatorio" :disabled="carregando">
-        {{ carregando ? 'Gerando...' : 'Gerar relatório' }}
+      <button :disabled="carregando" @click="gerarRelatorio">
+        {{ carregando ? 'Gerando...' : 'Gerar relatorio' }}
       </button>
     </section>
+
     <button
       v-if="relatorio"
       class="btn-exportar"
       @click="exportarDocx"
     >
-      ⬇ Exportar DOCX
+      Exportar DOCX
     </button>
-
 
     <p v-if="erro" class="erro">{{ erro }}</p>
 
     <section v-if="relatorio" class="documento">
-
-      <!-- CABEÇALHO -->
       <header class="relatorio-header">
         <h1>{{ relatorio.cabecalho.titulo }}</h1>
         <p>
-          Oficina de Programação · {{ relatorio.cabecalho.mes }}/{{ relatorio.cabecalho.ano }}
+          Oficina de Programacao · {{ relatorio.cabecalho.mes }}/{{ relatorio.cabecalho.ano }}
         </p>
       </header>
 
-      <!-- DEFESA -->
       <section class="bloco">
         <h2>Defesa do Projeto Aplicado</h2>
         <p
@@ -160,7 +154,6 @@ async function exportarDocx() {
         </p>
       </section>
 
-      <!-- SEMANAS -->
       <section
         v-for="(semana, s) in relatorio.semanas"
         :key="s"
@@ -168,7 +161,6 @@ async function exportarDocx() {
       >
         <h2>{{ semana.identificador }} · {{ semana.periodo }}</h2>
 
-        <!-- DIAS -->
         <article
           v-for="(dia, d) in semana.dias"
           :key="d"
@@ -177,13 +169,14 @@ async function exportarDocx() {
           <h3>Data: {{ dia.dataFormatada }}</h3>
 
           <ul class="meta-dia">
-            <li><strong>Módulo:</strong> {{ dia.modulo }}</li>
-            <li><strong>Tema do dia:</strong> {{ dia.temaDia }}</li>
+            <li><strong>Modulo:</strong> {{ dia.modulo }}</li>
+            <li><strong>Tema da manha:</strong> {{ dia.temaDiaManha }}</li>
+            <li><strong>Tema da tarde:</strong> {{ dia.temaDiaTarde }}</li>
+            <li><strong>Tema consolidado do dia:</strong> {{ dia.temaDia }}</li>
             <li><strong>Tema anterior:</strong> {{ dia.temaAnterior }}</li>
             <li><strong>Soft Skills desenvolvidas:</strong> {{ dia.softSkillsDesenvolvidas }}</li>
           </ul>
 
-          <!-- TABELA CORRIGIDA -->
           <div class="bloco-tabela">
             <table class="tabela">
               <thead>
@@ -201,27 +194,23 @@ async function exportarDocx() {
             </table>
           </div>
 
-          <!-- FOTOS -->
           <section class="bloco-fotos">
-            <h4>Registros Fotográficos</h4>
+            <h4>Registros fotograficos</h4>
             <div class="galeria-fotos">
               <div class="foto-placeholder">Inserir foto</div>
               <div class="foto-placeholder">Inserir foto</div>
               <div class="foto-placeholder">Inserir foto</div>
             </div>
           </section>
-
         </article>
 
-        <!-- PARECER -->
         <article class="fechamento">
-          <h3 class="titulo-parecer">Parecer Técnico do Educador</h3>
+          <h3 class="titulo-parecer">Parecer tecnico do educador</h3>
           <p>{{ semana.parecerTecnico }}</p>
         </article>
 
         <div class="divisor-semana"></div>
       </section>
-
     </section>
   </main>
 </template>
@@ -233,10 +222,6 @@ async function exportarDocx() {
   color: #0f172a;
 }
 
-/* ============================= */
-/* BLOCO CONTROLE */
-/* ============================= */
-
 .controle {
   display: flex;
   gap: 12px;
@@ -244,7 +229,6 @@ async function exportarDocx() {
   margin-bottom: 20px;
 }
 
-/* Inputs e Select */
 .controle select,
 .controle input {
   height: 42px;
@@ -258,7 +242,6 @@ async function exportarDocx() {
   box-sizing: border-box;
 }
 
-/* Botão Gerar Relatório */
 .controle button {
   height: 42px;
   padding: 0 20px;
@@ -282,10 +265,6 @@ async function exportarDocx() {
   transform: translateY(-1px);
 }
 
-/* ============================= */
-/* RESPONSIVO */
-/* ============================= */
-
 @media (max-width: 600px) {
   .controle {
     flex-direction: column;
@@ -299,10 +278,6 @@ async function exportarDocx() {
     height: 42px;
   }
 }
-
-/* ============================= */
-/* DOCUMENTO */
-/* ============================= */
 
 .documento {
   background: #ffffff;
@@ -340,10 +315,6 @@ async function exportarDocx() {
   margin-bottom: 6px;
 }
 
-/* ============================= */
-/* TABELA */
-/* ============================= */
-
 .bloco-tabela {
   margin-top: 12px;
 }
@@ -366,17 +337,12 @@ async function exportarDocx() {
   font-weight: 600;
 }
 
-/* Tabela responsiva */
 @media (max-width: 600px) {
   .tabela {
     display: block;
     overflow-x: auto;
   }
 }
-
-/* ============================= */
-/* PARECER */
-/* ============================= */
 
 .fechamento {
   margin-top: 32px;
@@ -393,10 +359,6 @@ async function exportarDocx() {
   margin-top: 40px;
   border-bottom: 2px solid #334155;
 }
-
-/* ============================= */
-/* FOTOS */
-/* ============================= */
 
 .bloco-fotos {
   margin-top: 20px;
@@ -429,10 +391,6 @@ async function exportarDocx() {
   }
 }
 
-/* ============================= */
-/* BOTÃO EXPORTAR */
-/* ============================= */
-
 .btn-exportar {
   background: linear-gradient(135deg, #1e293b, #0f172a);
   color: #ffffff;
@@ -453,10 +411,6 @@ async function exportarDocx() {
   transform: translateY(-2px);
   box-shadow: 0 6px 18px rgba(37, 99, 235, 0.4);
 }
-
-/* ============================= */
-/* ERRO */
-/* ============================= */
 
 .erro {
   color: #b91c1c;
