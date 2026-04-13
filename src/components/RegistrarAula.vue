@@ -2,8 +2,16 @@
 const API_URL = import.meta.env.VITE_API_URL
 import { ref, nextTick } from 'vue'
 
+function gerarDataLocalInput(data = new Date()) {
+  const ano = data.getFullYear()
+  const mes = String(data.getMonth() + 1).padStart(2, '0')
+  const dia = String(data.getDate()).padStart(2, '0')
+
+  return `${ano}-${mes}-${dia}`
+}
+
 const aula = ref({
-  data: new Date().toISOString().substring(0, 10),
+  data: gerarDataLocalInput(),
   turma: '',
   conteudo: '',
   temaAnterior: '',
@@ -75,7 +83,7 @@ const copiarTexto = () => {
 
 const limparFormulario = () => {
   aula.value = {
-    data: new Date().toISOString().substring(0, 10),
+    data: gerarDataLocalInput(),
     turma: '',
     conteudo: '',
     temaAnterior: '',
