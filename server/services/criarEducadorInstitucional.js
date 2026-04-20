@@ -10,7 +10,7 @@ function gerarSenhaInterna() {
 
 function validarDadosEntrada({ nome, email, oficinaId }) {
   if (!nome || !email || !oficinaId) {
-    throw new Error('Nome, email e oficinaId sao obrigatorios')
+    throw new Error('Nome, e-mail e oficinaId são obrigatórios')
   }
 }
 
@@ -75,7 +75,7 @@ export default async function criarEducadorInstitucional({
         await adminAuth.deleteUser(userRecord.uid)
       } catch (rollbackError) {
         console.error(
-          'Falha ao reverter usuario no Auth apos erro na criacao institucional:',
+          'Falha ao reverter usuário no Auth após erro na criação institucional:',
           rollbackError
         )
       }

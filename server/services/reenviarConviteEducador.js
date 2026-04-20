@@ -4,20 +4,20 @@ import gerarLinkPrimeiroAcesso from './gerarLinkPrimeiroAcesso.js'
 
 export default async function reenviarConviteEducador({ uid }) {
   if (!uid) {
-    throw new Error('Uid obrigatorio para reenvio')
+    throw new Error('Uid obrigatório para reenvio')
   }
 
   const userRef = adminDb.collection('usuarios').doc(uid)
   const userSnap = await userRef.get()
 
   if (!userSnap.exists) {
-    throw new Error('Educador nao encontrado')
+    throw new Error('Educador não encontrado')
   }
 
   const userData = userSnap.data()
 
   if (userData.role !== ROLES.EDUCADOR) {
-    throw new Error('Usuario informado nao e educador')
+    throw new Error('Usuário informado não é educador')
   }
 
   if (userData.ativo === false) {
@@ -25,7 +25,7 @@ export default async function reenviarConviteEducador({ uid }) {
   }
 
   if (userData.status !== 'pendente_ativacao') {
-    throw new Error('Reenvio disponivel apenas para educador pendente de ativacao')
+    throw new Error('Reenvio disponível apenas para educador pendente de ativação')
   }
 
   const { linkPrimeiroAcesso } = await gerarLinkPrimeiroAcesso(userData.email)
