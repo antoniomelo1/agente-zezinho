@@ -28,10 +28,10 @@ function obterMensagemErroValidacao(error) {
   }
 
   if (error?.code === 'auth/invalid-action-code') {
-    return 'Link de primeiro acesso invalido.'
+    return 'Link de primeiro acesso inválido.'
   }
 
-  return 'Link de primeiro acesso invalido ou expirado.'
+  return 'Link de primeiro acesso inválido ou expirado.'
 }
 
 function obterMensagemErroConfirmacao(error) {
@@ -40,17 +40,17 @@ function obterMensagemErroConfirmacao(error) {
   }
 
   if (error?.code === 'auth/invalid-action-code') {
-    return 'Este link ja foi utilizado. Solicite um novo acesso ao coordenador.'
+    return 'Este link já foi utilizado. Solicite um novo acesso ao coordenador.'
   }
 
-  return error?.message || 'Nao foi possivel concluir o primeiro acesso.'
+  return error?.message || 'Não foi possível concluir o primeiro acesso.'
 }
 
 async function ativarPrimeiroAcesso() {
   const usuario = auth.currentUser
 
   if (!usuario) {
-    throw new Error('Nao foi possivel autenticar o educador apos a redefinicao')
+    throw new Error('Não foi possível autenticar o educador após a redefinição.')
   }
 
   const token = await usuario.getIdToken()
@@ -64,7 +64,7 @@ async function ativarPrimeiroAcesso() {
   const data = await response.json()
 
   if (!response.ok) {
-    throw new Error(data.erro || 'Erro ao ativar primeiro acesso')
+    throw new Error(data.erro || 'Erro ao ativar o primeiro acesso.')
   }
 }
 
@@ -80,14 +80,14 @@ async function concluirPrimeiroAcesso() {
   }
 
   if (novaSenha.value !== confirmarSenha.value) {
-    erro.value = 'As senhas informadas nao coincidem.'
+    erro.value = 'As senhas informadas não coincidem.'
     return
   }
 
   const oobCode = String(route.query.oobCode || '')
 
   if (!oobCode || !email.value) {
-    erro.value = 'Link de primeiro acesso invalido.'
+    erro.value = 'Link de primeiro acesso inválido.'
     return
   }
 
@@ -102,7 +102,7 @@ async function concluirPrimeiroAcesso() {
     await signOut(auth)
 
     sucesso.value =
-      'Senha redefinida com sucesso. Seu acesso institucional foi ativado. Agora voce ja pode entrar pelo login.'
+      'Senha redefinida com sucesso. Seu acesso institucional foi ativado. Agora você já pode entrar pelo login.'
     novaSenha.value = ''
     confirmarSenha.value = ''
   } catch (error) {
@@ -122,7 +122,7 @@ onMounted(async () => {
   const oobCode = String(route.query.oobCode || '')
 
   if (mode !== 'resetPassword' || !oobCode) {
-    erro.value = 'Link de primeiro acesso invalido.'
+    erro.value = 'Link de primeiro acesso inválido.'
     verificandoCodigo.value = false
     return
   }
@@ -169,7 +169,7 @@ onMounted(async () => {
         {{ carregando ? 'Concluindo...' : 'Concluir primeiro acesso' }}
       </button>
 
-      <button v-else @click="irParaLogin">Ir para login</button>
+      <button v-else @click="irParaLogin">Ir para o login</button>
 
       <p v-if="erro" class="erro">{{ erro }}</p>
       <p v-if="sucesso" class="sucesso">{{ sucesso }}</p>

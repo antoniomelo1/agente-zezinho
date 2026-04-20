@@ -10,7 +10,7 @@ function montarLinkPrimeiroAcesso(linkNativo) {
   const oobCode = urlNativa.searchParams.get('oobCode')
 
   if (!oobCode) {
-    throw new Error('Link nativo de redefinicao invalido')
+    throw new Error('Link nativo de redefinição inválido')
   }
 
   const urlAplicacao = new URL(`${FRONTEND_URL}/primeiro-acesso`)

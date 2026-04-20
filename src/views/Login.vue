@@ -28,12 +28,12 @@ const possuiVinculoAtivo = (userData) => {
 const encerrarSessaoBloqueada = async () => {
   authStore.limparUsuario()
   await signOut(auth)
-  alert('Seu acesso ainda nao foi liberado. Procure o coordenador.')
+  alert('Seu acesso ainda não foi liberado. Procure o coordenador.')
 }
 
 const login = async () => {
   if (!email.value || !senha.value) {
-    alert('Preencha todos os campos')
+    alert('Preencha todos os campos.')
     return
   }
 
@@ -73,11 +73,11 @@ const login = async () => {
     } else {
       authStore.limparUsuario()
       await signOut(auth)
-      alert('Perfil nao reconhecido')
+      alert('Perfil não reconhecido.')
     }
   } catch (error) {
     console.error(error)
-    alert('Email ou senha invalidos')
+    alert('E-mail ou senha inválidos.')
   } finally {
     carregando.value = false
   }
@@ -88,7 +88,7 @@ const login = async () => {
   <div class="container-auth">
     <h2>Login</h2>
 
-    <input v-model="email" type="email" placeholder="Email" />
+    <input v-model="email" type="email" placeholder="E-mail" />
     <input v-model="senha" type="password" placeholder="Senha" />
 
     <button @click="login" :disabled="carregando">

@@ -14,7 +14,7 @@ const router = useRouter()
 
 const cadastrar = async () => {
   if (!nome.value || !email.value || !senha.value) {
-    alert('Preencha todos os campos')
+    alert('Preencha todos os campos.')
     return
   }
 
@@ -60,7 +60,7 @@ const cadastrar = async () => {
     <input v-model="senha" type="password" placeholder="Senha" />
 
     <button @click="cadastrar" :disabled="carregando">
-      {{ carregando ? 'Criando...' : 'Criar Conta' }}
+      {{ carregando ? 'Criando...' : 'Criar conta' }}
     </button>
   </div>
 </template>
