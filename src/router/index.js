@@ -4,7 +4,8 @@ import { useAuthStore } from '../stores/authStore'
 
 import RegistrarResumoDiario from '../components/RegistrarResumoDiario.vue'
 import RelatorioMensal from '../components/RelatorioMensal.vue'
-import ImportarPlanoAnual from '../components/ImportarPlanoAnual.vue'
+import PlanoAulasMensal from '../components/PlanoAulasMensal.vue'
+import BaseInstitucional from '../components/BaseInstitucional.vue'
 
 import Login from '../views/Login.vue'
 import PainelCoordenador from '../views/PainelCoordenador.vue'
@@ -36,9 +37,20 @@ const routes = [
   },
 
   {
-    path: '/plano-anual',
-    component: ImportarPlanoAnual,
+    path: '/plano-aulas-mensal',
+    component: PlanoAulasMensal,
+    meta: { requiresAuth: true, role: 'educador' }
+  },
+
+  {
+    path: '/base-institucional',
+    component: BaseInstitucional,
     meta: { requiresAuth: true, roles: ['educador', 'coordenador'] }
+  },
+
+  {
+    path: '/plano-anual',
+    redirect: '/base-institucional'
   }
 ]
 

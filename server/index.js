@@ -12,6 +12,14 @@ import gerarParecerSemanal from './services/gerarParecerSemanal.js'
 import gerarDefesaProjeto from './services/gerarDefesaProjeto.js'
 import { gerarRelatorioMensal } from './services/gerarRelatorioMensal.js'
 import gerarRelatorioDocx from './services/gerarRelatorioDocx.js'
+import gerarPlanoAulasMensal from './services/gerarPlanoAulasMensal.js'
+import gerarPlanoAulasMensalDocx from './services/gerarPlanoAulasMensalDocx.js'
+import {
+  ativarDocumentoBasePlanoMensal,
+  desativarDocumentoBasePlanoMensal,
+  listarDocumentosBasePlanoMensal,
+  salvarDocumentoBasePlanoMensal
+} from './services/documentoBasePlanoMensal.js'
 import criarEducadorInstitucional from './services/criarEducadorInstitucional.js'
 import ativarEducadorAposRedefinicao from './services/ativarEducadorAposRedefinicao.js'
 import reenviarConviteEducador from './services/reenviarConviteEducador.js'
@@ -67,10 +75,10 @@ app.post(
       console.error(error)
 
       if (error.code === 'auth/email-already-exists') {
-        return res.status(409).json({ erro: 'Email ja cadastrado' })
+        return res.status(409).json({ erro: 'E-mail já cadastrado' })
       }
 
-      if (error.message === 'Nome, email e oficinaId sao obrigatorios') {
+      if (error.message === 'Nome, e-mail e oficinaId são obrigatórios') {
         return res.status(400).json({ erro: error.message })
       }
 
@@ -110,20 +118,20 @@ app.post('/usuarios/ativar-primeiro-acesso', requireAuth, async (req, res) => {
     console.error(error)
 
     if (
-      error.message === 'Usuario sem cadastro institucional' ||
+      error.message === 'Usuário sem cadastro institucional' ||
       error.message === 'Apenas educadores podem concluir primeiro acesso' ||
-      error.message === 'Email autenticado divergente do cadastro institucional' ||
-      error.message === 'Usuario inativo' ||
-      error.message === 'Usuario nao esta pendente de ativacao'
+      error.message === 'E-mail autenticado divergente do cadastro institucional' ||
+      error.message === 'Usuário inativo' ||
+      error.message === 'Usuário não está pendente de ativação'
     ) {
       return res.status(403).json({ erro: error.message })
     }
 
-    if (error.message === 'Primeiro acesso ja concluido') {
+    if (error.message === 'Primeiro acesso já concluído') {
       return res.status(409).json({ erro: error.message })
     }
 
-    if (error.message === 'Uid obrigatorio para ativacao') {
+    if (error.message === 'Uid obrigatório para ativação') {
       return res.status(400).json({ erro: error.message })
     }
 
@@ -149,16 +157,16 @@ app.post(
       console.error(error)
 
       if (
-        error.message === 'Educador nao encontrado' ||
-        error.message === 'Usuario informado nao e educador' ||
+        error.message === 'Educador não encontrado' ||
+        error.message === 'Usuário informado não é educador' ||
         error.message === 'Educador inativo' ||
         error.message ===
-          'Reenvio disponivel apenas para educador pendente de ativacao'
+          'Reenvio disponível apenas para educador pendente de ativação'
       ) {
         return res.status(404).json({ erro: error.message })
       }
 
-      if (error.message === 'Uid obrigatorio para reenvio') {
+      if (error.message === 'Uid obrigatório para reenvio') {
         return res.status(400).json({ erro: error.message })
       }
 
@@ -205,22 +213,22 @@ app.post(
       })
 
       res.status(201).json({
-        mensagem: 'Registro diario salvo com sucesso',
+        mensagem: 'Registro diário salvo com sucesso',
         ...resultado
       })
     } catch (error) {
       console.error(error)
 
       if (
-        error.message === 'Data obrigatoria' ||
-        error.message === 'Data invalida' ||
-        error.message === 'Modulo e ao menos um tema sao obrigatorios' ||
+        error.message === 'Data obrigatória' ||
+        error.message === 'Data inválida' ||
+        error.message === 'Módulo e ao menos um tema são obrigatórios' ||
         error.message === 'Ao menos um resumo deve ser informado'
       ) {
         return res.status(400).json({ erro: error.message })
       }
 
-      res.status(500).json({ erro: 'Erro ao salvar registro diario' })
+      res.status(500).json({ erro: 'Erro ao salvar registro diário' })
     }
   }
 )
@@ -414,6 +422,211 @@ app.post(
     } catch (erro) {
       console.error(erro)
       res.status(500).json({ erro: 'Erro ao exportar DOCX' })
+    }
+  }
+)
+
+app.post(
+  '/gerar-plano-aulas-mensal',
+  requireAuth,
+  requireRole([ROLES.EDUCADOR]),
+  async (req, res) => {
+    try {
+      const { ano, mes, observacoesMes, modulosPrevistos } = req.body
+
+      if (!ano || !mes || Number(mes) < 1 || Number(mes) > 12) {
+        return res.status(400).json({ erro: 'Ano ou mês inválido' })
+      }
+
+      const plano = await gerarPlanoAulasMensal({
+        ano: Number(ano),
+        mes: Number(mes),
+        observacoesMes,
+        modulosPrevistos,
+        educador: req.currentUser
+      })
+
+      res.json(plano)
+    } catch (error) {
+      console.error(error)
+
+      if (
+        error.message === 'Plano anual não encontrado' ||
+        error.message === 'Documento base do plano de aulas não encontrado' ||
+        error.message.startsWith('Nenhum documento base ativo foi encontrado para ') ||
+        error.message === 'Educador autenticado sem vínculo institucional válido' ||
+        error.message === 'Mês ou ano inválido'
+      ) {
+        return res.status(400).json({ erro: error.message })
+      }
+
+      res.status(500).json({ erro: error.message })
+    }
+  }
+)
+
+app.post(
+  '/exportar-plano-aulas-mensal-docx',
+  requireAuth,
+  requireRole([ROLES.EDUCADOR]),
+  async (req, res) => {
+    try {
+      const plano = req.body
+
+      if (!plano) {
+        return res.status(400).json({ erro: 'Plano não enviado' })
+      }
+
+      const buffer = await gerarPlanoAulasMensalDocx(plano)
+
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      )
+
+      res.setHeader(
+        'Content-Disposition',
+        'attachment; filename=Plano_Aulas_Mensal.docx'
+      )
+
+      res.send(buffer)
+    } catch (error) {
+      console.error(error)
+      res.status(500).json({ erro: 'Erro ao exportar DOCX do plano mensal' })
+    }
+  }
+)
+
+app.post(
+  '/documento-base-plano-mensal',
+  requireAuth,
+  requireRole([ROLES.EDUCADOR, ROLES.COORDENADOR]),
+  async (req, res) => {
+    try {
+      const documento = await salvarDocumentoBasePlanoMensal({
+        payload: req.body,
+        usuario: req.currentUser
+      })
+
+      res.json(documento)
+    } catch (error) {
+      console.error(error)
+
+      if (
+        error.message ===
+          'Ano, semestre, título, versão e conteúdo são obrigatórios para o documento base' ||
+        error.message.startsWith(
+          'O semestre informado não corresponde ao texto do documento base.'
+        ) ||
+        error.message ===
+          'A coordenação pode revisar e ativar versões, mas a elaboração e a edição do Documento Base do Plano Mensal permanecem com o educador.' ||
+        error.message === 'Usuário autenticado sem vínculo institucional válido' ||
+        error.message === 'Educador autenticado sem vínculo institucional válido' ||
+        error.message === 'Documento base não encontrado para edição' ||
+        error.message === 'Documento base fora da oficina do educador autenticado'
+      ) {
+        return res.status(400).json({ erro: error.message })
+      }
+
+      res.status(500).json({ erro: 'Erro ao salvar documento base do plano mensal' })
+    }
+  }
+)
+
+app.get(
+  '/documento-base-plano-mensal',
+  requireAuth,
+  requireRole([ROLES.EDUCADOR, ROLES.COORDENADOR]),
+  async (req, res) => {
+    try {
+      const resposta = await listarDocumentosBasePlanoMensal({
+        usuario: req.currentUser,
+        oficinaId: req.query.oficinaId,
+        ano: req.query.ano,
+        semestre: req.query.semestre
+      })
+
+      res.json(resposta)
+    } catch (error) {
+      console.error(error)
+
+      if (
+        error.message === 'Oficina institucional não encontrada para listar documento base' ||
+        error.message === 'Usuário autenticado sem vínculo institucional válido' ||
+        error.message === 'Educador autenticado sem vínculo institucional válido' ||
+        error.message === 'Documento base fora do escopo institucional da coordenação'
+      ) {
+        return res.status(400).json({ erro: error.message })
+      }
+
+      res.status(500).json({ erro: 'Erro ao listar documentos base do plano mensal' })
+    }
+  }
+)
+
+app.post(
+  '/documento-base-plano-mensal/ativar',
+  requireAuth,
+  requireRole([ROLES.EDUCADOR, ROLES.COORDENADOR]),
+  async (req, res) => {
+    try {
+      const documento = await ativarDocumentoBasePlanoMensal({
+        documentoId: req.body.documentoId,
+        usuario: req.currentUser
+      })
+
+      res.json(documento)
+    } catch (error) {
+      console.error(error)
+
+      if (
+        error.message === 'Documento base obrigatório para ativação' ||
+        error.message === 'Documento base não encontrado para ativação' ||
+        error.message.startsWith(
+          'O semestre informado não corresponde ao texto do documento base.'
+        ) ||
+        error.message ===
+          'Somente a coordenação pode ativar ou desativar a versão do Documento Base do Plano Mensal.' ||
+        error.message === 'Documento base fora do escopo institucional da coordenação' ||
+        error.message === 'Usuário autenticado sem vínculo institucional válido' ||
+        error.message === 'Educador autenticado sem vínculo institucional válido'
+      ) {
+        return res.status(400).json({ erro: error.message })
+      }
+
+      res.status(500).json({ erro: 'Erro ao ativar documento base do plano mensal' })
+    }
+  }
+)
+
+app.post(
+  '/documento-base-plano-mensal/desativar',
+  requireAuth,
+  requireRole([ROLES.EDUCADOR, ROLES.COORDENADOR]),
+  async (req, res) => {
+    try {
+      const documento = await desativarDocumentoBasePlanoMensal({
+        documentoId: req.body.documentoId,
+        usuario: req.currentUser
+      })
+
+      res.json(documento)
+    } catch (error) {
+      console.error(error)
+
+      if (
+        error.message === 'Documento base obrigatório para desativação' ||
+        error.message === 'Documento base não encontrado para desativação' ||
+        error.message ===
+          'Somente a coordenação pode ativar ou desativar a versão do Documento Base do Plano Mensal.' ||
+        error.message === 'Documento base fora do escopo institucional da coordenação' ||
+        error.message === 'Usuário autenticado sem vínculo institucional válido' ||
+        error.message === 'Educador autenticado sem vínculo institucional válido'
+      ) {
+        return res.status(400).json({ erro: error.message })
+      }
+
+      res.status(500).json({ erro: 'Erro ao desativar documento base do plano mensal' })
     }
   }
 )
