@@ -12,38 +12,40 @@ const ANO_PLANO = '2026'
 const authStore = useAuthStore()
 const isCoordenador = computed(() => authStore.role === 'coordenador')
 
-// Verifica se já existe plano salvo
 onMounted(async () => {
   const refPlano = doc(db, 'plano_anual', ANO_PLANO)
   const snap = await getDoc(refPlano)
 
   if (snap.exists()) {
     jaExiste.value = true
-    textoPlano.value = snap.data().defesaProjetoAplicado
+    textoPlano.value = snap.data().defesaProjetoAplicado || ''
   }
 })
 
-// Salvar ou substituir plano
 async function salvarPlano() {
   if (!textoPlano.value.trim()) {
-    alert('Cole o texto do plano anual')
+    alert('Cole o texto do plano anual.')
     return
   }
 
   carregando.value = true
 
   try {
-    await setDoc(doc(db, 'plano_anual', ANO_PLANO), {
-      ano: Number(ANO_PLANO),
-      defesaProjetoAplicado: textoPlano.value,
-      atualizadoEm: Timestamp.now()
-    })
+    await setDoc(
+      doc(db, 'plano_anual', ANO_PLANO),
+      {
+        ano: Number(ANO_PLANO),
+        defesaProjetoAplicado: textoPlano.value,
+        atualizadoEm: Timestamp.now()
+      },
+      { merge: true }
+    )
 
     jaExiste.value = true
-    alert('Plano anual salvo com sucesso')
+    alert('Plano anual salvo com sucesso.')
   } catch (error) {
     console.error(error)
-    alert('Erro ao salvar o plano anual')
+    alert('Erro ao salvar o plano anual.')
   } finally {
     carregando.value = false
   }
@@ -57,19 +59,19 @@ async function salvarPlano() {
       to="/painel-coordenador"
       class="voltar-painel"
     >
-      ← Voltar ao painel
+      Voltar ao painel
     </router-link>
 
     <header>
-      <h2>Plano de Aulas Anual – {{ ANO_PLANO }}</h2>
+      <h2>Plano Anual - {{ ANO_PLANO }}</h2>
       <p>
-        Texto utilizado exclusivamente para contextualizar a Defesa do Projeto Aplicado
+        Documento institucional anual de referência utilizado para contextualizar a Defesa do Projeto Aplicado.
       </p>
     </header>
 
     <textarea
       v-model="textoPlano"
-      placeholder="Cole aqui o texto institucional do Plano Anual"
+      placeholder="Cole aqui o texto institucional anual de defesa do tema e da metodologia."
     ></textarea>
 
     <button @click="salvarPlano" :disabled="carregando">
@@ -77,7 +79,7 @@ async function salvarPlano() {
     </button>
 
     <p v-if="jaExiste" class="aviso">
-      Um plano já está salvo. Salvar novamente irá substituir o conteúdo.
+      Um plano anual já está salvo. Salvar novamente irá atualizar apenas esse conteúdo institucional.
     </p>
   </section>
 </template>
