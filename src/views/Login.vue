@@ -9,6 +9,7 @@ import { useAuthStore } from '../stores/authStore'
 const email = ref('')
 const senha = ref('')
 const carregando = ref(false)
+const mostrarSenha = ref(false)
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -89,7 +90,22 @@ const login = async () => {
     <h2>Login</h2>
 
     <input v-model="email" type="email" placeholder="E-mail" />
-    <input v-model="senha" type="password" placeholder="Senha" />
+    <div class="campo-senha">
+      <input
+        v-model="senha"
+        :type="mostrarSenha ? 'text' : 'password'"
+        placeholder="Senha"
+      />
+      <button
+        class="toggle-senha"
+        type="button"
+        :aria-label="mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'"
+        :aria-pressed="mostrarSenha"
+        @click="mostrarSenha = !mostrarSenha"
+      >
+        {{ mostrarSenha ? 'Ocultar' : 'Mostrar' }}
+      </button>
+    </div>
 
     <button @click="login" :disabled="carregando">
       {{ carregando ? 'Entrando...' : 'Entrar' }}
@@ -110,6 +126,29 @@ input {
   padding: 10px;
   border-radius: 6px;
   border: 1px solid #444;
+}
+
+.campo-senha {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.campo-senha input {
+  width: 100%;
+  padding-right: 86px;
+}
+
+.toggle-senha {
+  position: absolute;
+  right: 6px;
+  width: auto;
+  padding: 6px 8px;
+  border: 1px solid rgba(0, 242, 254, 0.35);
+  background: rgba(15, 23, 42, 0.8);
+  color: #00f2fe;
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 
 button {
