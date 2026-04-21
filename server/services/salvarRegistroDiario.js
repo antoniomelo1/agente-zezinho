@@ -47,11 +47,11 @@ function validarPayload(payload = {}) {
   const temaDiaTarde = normalizarTexto(payload.temaDiaTarde)
 
   if (!payload.data) {
-    throw new Error('Data obrigatoria')
+    throw new Error('Data obrigatória')
   }
 
   if (!normalizarTexto(payload.modulo) || !(temaDia || temaDiaManha || temaDiaTarde)) {
-    throw new Error('Modulo e ao menos um tema sao obrigatorios')
+    throw new Error('Módulo e ao menos um tema são obrigatórios')
   }
 
   if (
@@ -66,7 +66,7 @@ function converterData(data) {
   const dataConvertida = new Date(`${data}T00:00:00`)
 
   if (Number.isNaN(dataConvertida.getTime())) {
-    throw new Error('Data invalida')
+    throw new Error('Data inválida')
   }
 
   return dataConvertida

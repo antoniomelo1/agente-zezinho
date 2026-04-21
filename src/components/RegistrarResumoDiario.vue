@@ -93,19 +93,19 @@ async function salvarRegistro() {
     const temaDiaCompatibilidade = obterTemaDiaCompatibilidade()
 
     if (!registro.value.modulo || !temaDiaCompatibilidade) {
-      alert('Informe o modulo e ao menos um tema da aula.')
+      alert('Informe o módulo e ao menos um tema da aula.')
       return
     }
 
     if (!registro.value.resumoManha && !registro.value.resumoTarde) {
-      alert('Informe ao menos um resumo (manha ou tarde).')
+      alert('Informe ao menos um resumo (manhã ou tarde).')
       return
     }
 
     const usuario = auth.currentUser
 
     if (!usuario) {
-      alert('Usuario nao autenticado.')
+      alert('Usuário não autenticado.')
       return
     }
 
@@ -132,14 +132,14 @@ async function salvarRegistro() {
     const data = await response.json()
 
     if (!response.ok) {
-      throw new Error(data.erro || 'Erro ao salvar registro.')
+      throw new Error(data.erro || 'Erro ao salvar o registro.')
     }
 
     alert('Registro do dia salvo com sucesso!')
     limparFormulario()
   } catch (error) {
     console.error('Erro ao salvar registro:', error)
-    alert('Erro ao salvar o registro. Veja o console.')
+    alert('Erro ao salvar o registro. Verifique o console.')
   }
 }
 
@@ -151,18 +151,18 @@ function limparFormulario() {
 <template>
   <section class="registro-container">
     <header class="registro-header">
-      <h2>Registro Diario da Oficina de Programacao</h2>
-      <p>Base pedagogica para o Relatorio de Execucao Mensal</p>
+      <h2>Registro diário da Oficina de Programação</h2>
+      <p>Base pedagógica para o Relatório de Execução Mensal</p>
     </header>
 
     <div class="card">
-      <h3>Identificacao do dia</h3>
+      <h3>Identificação do dia</h3>
       <label>
-        Modulo em estudo
+        Módulo em estudo
         <input
           v-model="registro.modulo"
           type="text"
-          placeholder="Ex: Primeiros Passos na Programacao"
+          placeholder="Ex: Primeiros Passos na Programação"
         />
       </label>
 
@@ -190,14 +190,14 @@ function limparFormulario() {
     </div>
 
     <div class="card">
-      <h3>Contexto pedagogico</h3>
+      <h3>Contexto pedagógico</h3>
 
       <label>
-        Tema da aula da manha
+        Tema da aula da manhã
         <input
           v-model="registro.temaDiaManha"
           type="text"
-          placeholder="Ex: JavaScript - Funcoes e eventos"
+          placeholder="Ex: JavaScript - Funções e eventos"
         />
       </label>
 
@@ -207,7 +207,7 @@ function limparFormulario() {
           type="checkbox"
           @change="alternarTemaTardeDiferente"
         />
-        <span>Tema diferente no periodo da tarde</span>
+        <span>Tema diferente no período da tarde</span>
       </label>
 
       <label v-if="registro.temaTardeDiferente">
@@ -215,7 +215,7 @@ function limparFormulario() {
         <input
           v-model="registro.temaDiaTarde"
           type="text"
-          placeholder="Ex: Scratch - Variaveis e condicoes"
+          placeholder="Ex: Scratch - Variáveis e condições"
         />
       </label>
 
@@ -224,15 +224,15 @@ function limparFormulario() {
         <input
           v-model="registro.temaAnterior"
           type="text"
-          placeholder="Ex: Estrutura HTML basica"
+          placeholder="Ex: Estrutura HTML básica"
         />
       </label>
     </div>
 
     <div class="card">
-      <h3>Resumo do periodo da manha</h3>
+      <h3>Resumo do período da manhã</h3>
       <label>
-        Presenca da manha
+        Presença da manhã
         <input
           v-model="registro.totalPresentesManha"
           type="number"
@@ -248,9 +248,9 @@ function limparFormulario() {
     </div>
 
     <div class="card">
-      <h3>Resumo do periodo da tarde</h3>
+      <h3>Resumo do período da tarde</h3>
       <label>
-        Presenca da tarde
+        Presença da tarde
         <input
           v-model="registro.totalPresentesTarde"
           type="number"
@@ -266,14 +266,14 @@ function limparFormulario() {
     </div>
 
     <div class="card">
-      <h3>Soft skills por faixa etaria</h3>
+      <h3>Soft skills por faixa etária</h3>
 
       <label>
         Oriente
         <textarea
           v-model="registro.softOriente"
           rows="4"
-          placeholder="Atencao, participacao, interacao e postura geral do grupo."
+          placeholder="Atenção, participação, interação e postura geral do grupo."
         ></textarea>
       </label>
 
@@ -282,7 +282,7 @@ function limparFormulario() {
         <textarea
           v-model="registro.softCoracao"
           rows="4"
-          placeholder="Autonomia, responsabilidade, comunicacao e postura formativa."
+          placeholder="Autonomia, responsabilidade, comunicação e postura formativa."
         ></textarea>
       </label>
     </div>
@@ -313,18 +313,18 @@ function limparFormulario() {
     </div>
 
     <div v-if="false" class="card">
-      <h3>Evidencias do dia</h3>
+      <h3>Evidências do dia</h3>
 
       <label>Fotos</label>
       <input type="file" multiple @change="handleFotos" />
     </div>
 
     <div class="card">
-      <h3>Observacoes gerais</h3>
+      <h3>Observações gerais</h3>
       <textarea
         v-model="registro.observacoes"
         rows="4"
-        placeholder="Imprevistos, ausencias..."
+        placeholder="Imprevistos, ausências..."
       ></textarea>
     </div>
 
