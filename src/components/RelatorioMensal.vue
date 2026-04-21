@@ -14,7 +14,7 @@ async function obterToken() {
   const usuario = auth.currentUser
 
   if (!usuario) {
-    throw new Error('Usuario nao autenticado.')
+    throw new Error('Usuário não autenticado.')
   }
 
   return await usuario.getIdToken()
@@ -22,7 +22,7 @@ async function obterToken() {
 
 async function gerarRelatorio() {
   if (!mes.value || !ano.value) {
-    erro.value = 'Informe mes e ano.'
+    erro.value = 'Informe mês e ano.'
     return
   }
 
@@ -48,7 +48,7 @@ async function gerarRelatorio() {
     const data = await response.json()
 
     if (!response.ok) {
-      erro.value = data.erro || 'Erro ao gerar relatorio.'
+      erro.value = data.erro || 'Erro ao gerar relatório.'
       return
     }
 
@@ -59,7 +59,7 @@ async function gerarRelatorio() {
 
     relatorio.value = data
   } catch (e) {
-    erro.value = e.message || 'Erro ao gerar relatorio.'
+    erro.value = e.message || 'Erro ao gerar relatório.'
     console.error(e)
   } finally {
     carregando.value = false
@@ -104,10 +104,10 @@ async function exportarDocx() {
   <main class="relatorio-container">
     <section class="controle">
       <select v-model="mes">
-        <option value="">Mes</option>
+        <option value="">Mês</option>
         <option value="1">Janeiro</option>
         <option value="2">Fevereiro</option>
-        <option value="3">Marco</option>
+        <option value="3">Março</option>
         <option value="4">Abril</option>
         <option value="5">Maio</option>
         <option value="6">Junho</option>
@@ -122,7 +122,7 @@ async function exportarDocx() {
       <input v-model="ano" type="number" placeholder="Ano" />
 
       <button :disabled="carregando" @click="gerarRelatorio">
-        {{ carregando ? 'Gerando...' : 'Gerar relatorio' }}
+        {{ carregando ? 'Gerando...' : 'Gerar relatório' }}
       </button>
     </section>
 
@@ -140,7 +140,7 @@ async function exportarDocx() {
       <header class="relatorio-header">
         <h1>{{ relatorio.cabecalho.titulo }}</h1>
         <p>
-          Oficina de Programacao · {{ relatorio.cabecalho.mes }}/{{ relatorio.cabecalho.ano }}
+          Oficina de Programação - {{ relatorio.cabecalho.mes }}/{{ relatorio.cabecalho.ano }}
         </p>
       </header>
 
@@ -159,7 +159,7 @@ async function exportarDocx() {
         :key="s"
         class="bloco"
       >
-        <h2>{{ semana.identificador }} · {{ semana.periodo }}</h2>
+        <h2>{{ semana.identificador }} - {{ semana.periodo }}</h2>
 
         <article
           v-for="(dia, d) in semana.dias"
@@ -169,8 +169,8 @@ async function exportarDocx() {
           <h3>Data: {{ dia.dataFormatada }}</h3>
 
           <ul class="meta-dia">
-            <li><strong>Modulo:</strong> {{ dia.modulo }}</li>
-            <li><strong>Tema da manha:</strong> {{ dia.temaDiaManha }}</li>
+            <li><strong>Módulo:</strong> {{ dia.modulo }}</li>
+            <li><strong>Tema da manhã:</strong> {{ dia.temaDiaManha }}</li>
             <li><strong>Tema da tarde:</strong> {{ dia.temaDiaTarde }}</li>
             <li><strong>Tema consolidado do dia:</strong> {{ dia.temaDia }}</li>
             <li><strong>Tema anterior:</strong> {{ dia.temaAnterior }}</li>
@@ -195,7 +195,7 @@ async function exportarDocx() {
           </div>
 
           <section class="bloco-fotos">
-            <h4>Registros fotograficos</h4>
+            <h4>Registros fotográficos</h4>
             <div class="galeria-fotos">
               <div class="foto-placeholder">Inserir foto</div>
               <div class="foto-placeholder">Inserir foto</div>
@@ -205,7 +205,7 @@ async function exportarDocx() {
         </article>
 
         <article class="fechamento">
-          <h3 class="titulo-parecer">Parecer tecnico do educador</h3>
+          <h3 class="titulo-parecer">Parecer técnico do educador</h3>
           <p>{{ semana.parecerTecnico }}</p>
         </article>
 

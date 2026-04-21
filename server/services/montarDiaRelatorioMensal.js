@@ -17,10 +17,10 @@ export default async function montarDiaRelatorioMensal(dia) {
     dataISO: dia.dataISO,
     dataFormatada: formatarDataBR(dia.dataISO),
     modulo: dia.modulo,
-    temaDiaManha: dia.temaDiaManha || 'Nao informado',
-    temaDiaTarde: dia.temaDiaTarde || 'Nao informado',
-    temaDia: dia.temaDia || 'Nao informado',
-    temaAnterior: dia.temaAnterior || 'Nao informado',
+    temaDiaManha: dia.temaDiaManha || 'Não informado',
+    temaDiaTarde: dia.temaDiaTarde || 'Não informado',
+    temaDia: dia.temaDia || 'Não informado',
+    temaAnterior: dia.temaAnterior || 'Não informado',
     softSkillsDesenvolvidas: await gerarSoftSkills({
       softOriente: dia.softOriente,
       softCoracao: dia.softCoracao

@@ -1,9 +1,9 @@
 export function montarResumoPedagogico(registro) {
   return `
-Modulo: ${registro.modulo || 'Nao informado'}
-Tema da manha: ${registro.temaDiaManha || 'Nao informado'}
-Tema da tarde: ${registro.temaDiaTarde || 'Nao informado'}
-Tema consolidado do dia: ${registro.temaDia || 'Nao informado'}
+Módulo: ${registro.modulo || 'Não informado'}
+Tema da manhã: ${registro.temaDiaManha || 'Não informado'}
+Tema da tarde: ${registro.temaDiaTarde || 'Não informado'}
+Tema consolidado do dia: ${registro.temaDia || 'Não informado'}
 
 Manha:
 ${registro.resumoManha || 'Sem registro.'}
@@ -12,10 +12,10 @@ Tarde:
 ${registro.resumoTarde || 'Sem registro.'}
 
 Soft Skills - Oriente:
-${registro.softOriente || 'Nao informado'}
+${registro.softOriente || 'Não informado'}
 
-Soft Skills - Coracao:
-${registro.softCoracao || 'Nao informado'}
+Soft Skills - Coração:
+${registro.softCoracao || 'Não informado'}
 `.trim()
 }
 
