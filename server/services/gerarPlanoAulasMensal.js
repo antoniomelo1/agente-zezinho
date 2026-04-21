@@ -69,7 +69,7 @@ function formatarDataInstitucional(dataISO) {
     return String(dataISO)
   }
 
-  return `${dia}-${mes}-${ano}`
+  return `${dia}/${mes}/${ano}`
 }
 
 function normalizarLista(valor) {
