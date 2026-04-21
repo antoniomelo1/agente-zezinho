@@ -183,36 +183,8 @@ function montarAreasConhecimento() {
   return ['Programação', 'Raciocínio lógico', 'Cultura digital']
 }
 
-function montarRecursosMes({ recursosPadrao, modulosPrevistos }) {
-  const recursos = [
-    ...extrairListaTexto(recursosPadrao),
-    'Computadores ou notebooks',
-    'Internet para pesquisa e experimentação orientada',
-    'Projetor ou tela para sistematização coletiva',
-    'Quadro ou superficie de apoio para registro',
-    'Materiais digitais e impressos de apoio'
-  ]
-
-  if (modulosPrevistos.some((item) => item.toLowerCase().includes('scratch'))) {
-    recursos.push('Ambiente Scratch')
-  }
-
-  const recursosNormalizados = new Map()
-
-  recursos.forEach((item) => {
-    const recursoCorrigido = corrigirOrtografiaInstitucional(item)
-    const chave = recursoCorrigido
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase()
-      .trim()
-
-    if (chave && !recursosNormalizados.has(chave)) {
-      recursosNormalizados.set(chave, recursoCorrigido)
-    }
-  })
-
-  return Array.from(recursosNormalizados.values())
+function montarRecursosMes({ recursosPadrao }) {
+  return extrairListaTexto(recursosPadrao)
 }
 
 function montarResumoPlano({ mes, ano, oficinaNome, modulosPrevistos, projetoMes }) {
@@ -715,8 +687,7 @@ export default async function gerarPlanoAulasMensal({
     },
     semanas: estruturaFinal.semanas,
     recursosMes: montarRecursosMes({
-      recursosPadrao: documentoBaseAtivo.recursosPadrao,
-      modulosPrevistos: modulosPlanejamento
+      recursosPadrao: documentoBaseAtivo.recursosPadrao
     })
   }
 
