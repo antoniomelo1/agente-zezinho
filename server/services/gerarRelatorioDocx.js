@@ -48,7 +48,7 @@ export default async function gerarRelatorioDocx(relatorio) {
 
   children.push(
     paragrafoInstitucional(
-      `Oficina de Programacao - ${relatorio.cabecalho.mes}/${relatorio.cabecalho.ano}`
+      `Oficina de Programação - ${relatorio.cabecalho.mes}/${relatorio.cabecalho.ano}`
     )
   )
 
@@ -87,8 +87,8 @@ export default async function gerarRelatorioDocx(relatorio) {
       )
 
       children.push(
-        paragrafoInstitucional(`Modulo: ${dia.modulo}`),
-        paragrafoInstitucional(`Tema da manha: ${dia.temaDiaManha}`),
+        paragrafoInstitucional(`Módulo: ${dia.modulo}`),
+        paragrafoInstitucional(`Tema da manhã: ${dia.temaDiaManha}`),
         paragrafoInstitucional(`Tema da tarde: ${dia.temaDiaTarde}`),
         paragrafoInstitucional(`Tema consolidado do dia: ${dia.temaDia}`),
         paragrafoInstitucional(`Tema anterior: ${dia.temaAnterior}`),
@@ -127,7 +127,7 @@ export default async function gerarRelatorioDocx(relatorio) {
 
       children.push(
         new Paragraph({
-          text: 'Registros Fotograficos',
+          text: 'Registros fotográficos',
           heading: HeadingLevel.HEADING_4,
           spacing: { before: 250, after: 120 }
         })
@@ -160,7 +160,7 @@ export default async function gerarRelatorioDocx(relatorio) {
 
     children.push(
       new Paragraph({
-        text: 'Parecer Tecnico do Educador',
+        text: 'Parecer técnico do educador',
         heading: HeadingLevel.HEADING_3,
         spacing: { before: 300, after: 150 }
       })
