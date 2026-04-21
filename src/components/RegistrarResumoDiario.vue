@@ -338,14 +338,15 @@ function limparFormulario() {
 
 <style scoped>
 .registro-container {
-  max-width: 720px;
+  width: 100%;
+  max-width: 1080px;
   margin: 0 auto;
-  padding: 20px 20px;
+  padding: 32px 20px;
 }
 
 .registro-header {
   text-align: center;
-  margin-bottom: 24px;
+  margin-bottom: 30px;
 }
 
 .registro-header h2 {
@@ -360,12 +361,13 @@ function limparFormulario() {
 }
 
 .card {
-  background: rgba(30, 41, 59, 0.7);
-  padding: 20px;
-  border-radius: 18px;
-  margin-bottom: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+  background: rgba(15, 23, 42, 0.9);
+  padding: 24px;
+  border-radius: 20px;
+  margin-bottom: 22px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: 0 22px 48px rgba(2, 6, 23, 0.35);
+  backdrop-filter: blur(16px);
 }
 
 .card h3 {
@@ -388,23 +390,23 @@ label {
 
 input,
 select {
-  height: 38px;
-  border-radius: 10px;
-  border: 1px solid #334155;
-  padding: 0 12px;
-  font-size: 0.85rem;
-  background: #0f172a;
+  min-height: 48px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  padding: 10px 14px;
+  font-size: 0.95rem;
+  background: rgba(2, 6, 23, 0.55);
   color: #f8fafc;
   transition: all 0.3s ease;
 }
 
 textarea {
-  min-height: 90px;
-  border-radius: 10px;
-  border: 1px solid #334155;
-  padding: 10px 12px;
-  font-size: 0.85rem;
-  background: #0f172a;
+  min-height: 140px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  padding: 14px 16px;
+  font-size: 0.95rem;
+  background: rgba(2, 6, 23, 0.55);
   color: #f8fafc;
   resize: vertical;
   transition: all 0.3s ease;
@@ -444,10 +446,18 @@ input:disabled {
 .grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 20px;
 }
 
 @media (max-width: 600px) {
+  .registro-container {
+    padding: 24px 0;
+  }
+
+  .card {
+    padding: 20px;
+  }
+
   .grid {
     grid-template-columns: 1fr;
   }
