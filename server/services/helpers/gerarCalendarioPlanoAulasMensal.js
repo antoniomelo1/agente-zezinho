@@ -8,7 +8,7 @@ function formatarDataISO(data) {
 
 function formatarDataBR(dataISO) {
   const [ano, mes, dia] = String(dataISO).split('-')
-  return `${dia}-${mes}-${ano}`
+  return `${dia}/${mes}/${ano}`
 }
 
 function montarPeriodoSemana(datas) {
