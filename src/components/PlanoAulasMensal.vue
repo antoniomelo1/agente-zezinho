@@ -152,7 +152,8 @@ async function exportarDocx() {
       <input v-model="ano" type="number" placeholder="Ano" />
 
       <button :disabled="carregando" @click="gerarPlano">
-        {{ carregando ? 'Gerando...' : 'Gerar plano mensal' }}
+        <span v-if="carregando" class="spinner-botao" aria-hidden="true"></span>
+        <span>{{ carregando ? 'Gerando plano...' : 'Gerar plano mensal' }}</span>
       </button>
     </section>
 
@@ -293,6 +294,10 @@ async function exportarDocx() {
 .controle button,
 .btn-exportar {
   height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   padding: 0 20px;
   border: none;
   border-radius: 12px;
@@ -300,6 +305,31 @@ async function exportarDocx() {
   color: white;
   font-weight: 600;
   cursor: pointer;
+}
+
+.controle button {
+  min-width: 176px;
+}
+
+.controle button:disabled {
+  cursor: not-allowed;
+  opacity: 0.82;
+}
+
+.spinner-botao {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.55);
+  border-top-color: transparent;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  animation: girar-spinner 0.8s linear infinite;
+}
+
+@keyframes girar-spinner {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .bloco-formulario {

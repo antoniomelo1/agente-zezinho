@@ -122,7 +122,8 @@ async function exportarDocx() {
       <input v-model="ano" type="number" placeholder="Ano" />
 
       <button :disabled="carregando" @click="gerarRelatorio">
-        {{ carregando ? 'Gerando...' : 'Gerar relatório' }}
+        <span v-if="carregando" class="spinner-botao" aria-hidden="true"></span>
+        <span>{{ carregando ? 'Gerando relatório...' : 'Gerar relatório' }}</span>
       </button>
     </section>
 
@@ -244,6 +245,7 @@ async function exportarDocx() {
 
 .controle button {
   height: 42px;
+  min-width: 184px;
   padding: 0 20px;
   border: none;
   border-radius: 12px;
@@ -258,11 +260,33 @@ async function exportarDocx() {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
 }
 
 .controle button:hover {
   filter: brightness(1.1);
   transform: translateY(-1px);
+}
+
+.controle button:disabled {
+  cursor: not-allowed;
+  opacity: 0.82;
+}
+
+.spinner-botao {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.55);
+  border-top-color: transparent;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  animation: girar-spinner 0.8s linear infinite;
+}
+
+@keyframes girar-spinner {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (max-width: 600px) {
