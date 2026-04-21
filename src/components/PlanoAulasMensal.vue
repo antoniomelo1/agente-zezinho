@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { auth } from '../firebase/firebase.js'
 
 const API_URL = import.meta.env.VITE_API_URL
@@ -11,6 +11,13 @@ const modulosPrevistosTexto = ref('')
 const carregando = ref(false)
 const plano = ref(null)
 const erro = ref('')
+
+const importanciaProjetoMesParagrafos = computed(() => {
+  return String(plano.value?.importanciaProjetoMes || '')
+    .split(/\n\s*\n|\r?\n/)
+    .map((paragrafo) => paragrafo.trim())
+    .filter(Boolean)
+})
 
 function obterSemestrePorMes(mesAtual) {
   const numeroMes = Number(mesAtual)
@@ -195,7 +202,12 @@ async function exportarDocx() {
 
       <section class="bloco">
         <h2>Importância do projeto no mês</h2>
-        <p>{{ plano.importanciaProjetoMes }}</p>
+        <p
+          v-for="(paragrafo, indiceParagrafo) in importanciaProjetoMesParagrafos"
+          :key="indiceParagrafo"
+        >
+          {{ paragrafo }}
+        </p>
       </section>
 
       <section
