@@ -23,7 +23,7 @@ function resolverTemaDoRegistro(registro) {
     return `${temaManha} / ${temaTarde}`
   }
 
-  return temaManha || temaTarde || temaLegado || 'Nao informado'
+  return temaManha || temaTarde || temaLegado || 'Não informado'
 }
 
 async function carregarRegistros() {
@@ -56,8 +56,8 @@ onMounted(carregarRegistros)
 <template>
   <section class="lista-container">
     <header class="lista-header">
-      <h2>Registros Diarios</h2>
-      <p>Historico de aulas registradas</p>
+      <h2>Registros diários</h2>
+      <p>Histórico de aulas registradas</p>
     </header>
 
     <div v-if="carregando" class="loading">
@@ -85,7 +85,7 @@ onMounted(carregarRegistros)
           </div>
 
           <div class="status">
-            <span v-if="registro.resumoManha">Manha</span>
+            <span v-if="registro.resumoManha">Manhã</span>
             <span v-if="registro.resumoTarde">Tarde</span>
           </div>
         </li>

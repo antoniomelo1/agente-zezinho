@@ -31,7 +31,7 @@ async function obterToken() {
   const usuario = auth.currentUser
 
   if (!usuario) {
-    throw new Error('Usuario nao autenticado')
+    throw new Error('Usuário não autenticado.')
   }
 
   return await usuario.getIdToken()
@@ -147,7 +147,7 @@ async function carregarLeituraOperacional() {
     const data = await response.json()
 
     if (!response.ok) {
-      throw new Error(data.erro || 'Erro ao carregar visao da oficina.')
+      throw new Error(data.erro || 'Erro ao carregar a visão da oficina.')
     }
 
     leituraOperacional.value = {
@@ -159,7 +159,7 @@ async function carregarLeituraOperacional() {
     }
   } catch (error) {
     erroLeituraOperacional.value =
-      error.message || 'Erro ao carregar visao da oficina.'
+      error.message || 'Erro ao carregar a visão da oficina.'
   } finally {
     carregandoLeituraOperacional.value = false
   }
@@ -167,7 +167,7 @@ async function carregarLeituraOperacional() {
 
 async function reenviarConvite(uid) {
   if (!uid) {
-    erro.value = 'Nenhum educador pendente disponivel para reenvio.'
+    erro.value = 'Nenhum educador pendente disponível para reenvio.'
     return
   }
 
@@ -246,7 +246,7 @@ function textoStatusAtualizacao(status) {
 
 function textoOficina(oficinaId) {
   if (!oficinaId) {
-    return 'Nao informada'
+    return 'Não informada'
   }
 
   if (oficinaId === 'programacao') {
@@ -291,7 +291,7 @@ function textoResumos(registro) {
   return blocos.join(' | ') || 'Sem resumo registrado'
 }
 
-function textoCampo(value, fallback = 'Nao informado') {
+function textoCampo(value, fallback = 'Não informado') {
   if (value === null || value === undefined) {
     return fallback
   }
@@ -388,7 +388,7 @@ onMounted(() => {
         <div class="bloco-titulo">
           <h3 class="card-titulo">Novo educador</h3>
           <span class="listagem-subtexto">
-            Criacao institucional com link seguro de primeiro acesso
+            Criação institucional com link seguro de primeiro acesso
           </span>
         </div>
 
@@ -409,7 +409,7 @@ onMounted(() => {
           @click="reenviarConvite(ultimoEducadorCriado.uid)"
           :disabled="reenviando"
         >
-          {{ reenviando ? 'Gerando novo link...' : 'Reenviar convite do ultimo educador' }}
+          {{ reenviando ? 'Gerando novo link...' : 'Reenviar convite do último educador' }}
         </button>
 
         <p v-if="erro" class="erro">{{ erro }}</p>
@@ -473,7 +473,7 @@ onMounted(() => {
                   >
                     {{ textoStatus(educador) }}
                   </td>
-                  <td data-label="Acoes" class="celula-acoes">
+                  <td data-label="Ações" class="celula-acoes">
                     <button
                       v-if="educador.status === 'pendente_ativacao'"
                       class="secundario"
@@ -514,7 +514,7 @@ onMounted(() => {
         "
         class="estado-listagem"
       >
-        Nenhuma leitura operacional disponivel no momento.
+        Nenhuma leitura operacional disponível no momento.
       </div>
 
       <template v-else>
@@ -551,7 +551,7 @@ onMounted(() => {
           </label>
 
           <label class="filtro-campo">
-            <span>Data especifica</span>
+            <span>Data específica</span>
             <input
               v-model="selectedData"
               type="date"
@@ -654,9 +654,9 @@ onMounted(() => {
 
         <section v-if="isDetalhamentoAtivo" class="historico-registros">
           <div class="bloco-titulo">
-            <h4 class="card-titulo">Historico recente do educador</h4>
+            <h4 class="card-titulo">Histórico recente do educador</h4>
             <span class="listagem-subtexto">
-              {{ selectedData ? 'Registro encontrado para a data informada' : 'Ultimos 3 registros mais recentes' }}
+              {{ selectedData ? 'Registro encontrado para a data informada' : 'Últimos 3 registros mais recentes' }}
             </span>
           </div>
 
@@ -685,7 +685,7 @@ onMounted(() => {
               </div>
 
               <p><span>Tema</span><strong>{{ textoCampo(registro.temaDia) }}</strong></p>
-              <p><span>Modulo</span><strong>{{ textoCampo(registro.modulo) }}</strong></p>
+              <p><span>Módulo</span><strong>{{ textoCampo(registro.modulo) }}</strong></p>
               <p><span>Presentes</span><strong>{{ textoPresencaPorPeriodo(registro) }}</strong></p>
               <p><span>Resumo</span><strong>{{ textoResumos(registro) }}</strong></p>
             </article>
