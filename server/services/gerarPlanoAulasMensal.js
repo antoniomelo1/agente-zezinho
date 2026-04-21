@@ -228,13 +228,21 @@ function montarResumoPlano({ mes, ano, oficinaNome, modulosPrevistos, projetoMes
 
 function garantirTresParagrafos(texto) {
   const textoNormalizado = corrigirOrtografiaInstitucional(texto)
-  const paragrafos = textoNormalizado
-    .split(/\n\s*\n/)
+  const normalizarParagrafos = (itens) =>
+    itens
     .map((item) => item.trim())
     .filter(Boolean)
 
-  if (paragrafos.length >= 3) {
-    return paragrafos.join('\n\n')
+  const paragrafosPorBloco = normalizarParagrafos(textoNormalizado.split(/\n\s*\n/))
+
+  if (paragrafosPorBloco.length >= 3) {
+    return paragrafosPorBloco.join('\n\n')
+  }
+
+  const paragrafosPorLinha = normalizarParagrafos(textoNormalizado.split(/\r?\n/))
+
+  if (paragrafosPorLinha.length >= 3) {
+    return paragrafosPorLinha.join('\n\n')
   }
 
   const frases = textoNormalizado.match(/[^.!?]+[.!?]?/g)?.map((item) => item.trim()).filter(Boolean) || []
