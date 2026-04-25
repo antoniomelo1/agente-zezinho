@@ -2,7 +2,11 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { auth, db } from '../firebase/firebase'
-import { signInWithEmailAndPassword, signOut } from 'firebase/auth'
+import {
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword,
+  signOut
+} from 'firebase/auth'
 import { doc, getDoc } from 'firebase/firestore'
 import { useAuthStore } from '../stores/authStore'
 
@@ -10,6 +14,11 @@ const email = ref('')
 const senha = ref('')
 const carregando = ref(false)
 const mostrarSenha = ref(false)
+const exibirRecuperacaoSenha = ref(false)
+const emailRecuperacao = ref('')
+const carregandoRecuperacao = ref(false)
+const mensagemRecuperacao = ref('')
+const tipoMensagemRecuperacao = ref('info')
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -83,6 +92,40 @@ const login = async () => {
     carregando.value = false
   }
 }
+
+const abrirRecuperacaoSenha = () => {
+  exibirRecuperacaoSenha.value = true
+  mensagemRecuperacao.value = ''
+  emailRecuperacao.value = email.value
+}
+
+const fecharRecuperacaoSenha = () => {
+  exibirRecuperacaoSenha.value = false
+  mensagemRecuperacao.value = ''
+}
+
+const enviarRecuperacaoSenha = async () => {
+  if (!emailRecuperacao.value) {
+    mensagemRecuperacao.value = 'Informe seu e-mail para continuar.'
+    tipoMensagemRecuperacao.value = 'erro'
+    return
+  }
+
+  try {
+    carregandoRecuperacao.value = true
+    await sendPasswordResetEmail(auth, emailRecuperacao.value.trim())
+    mensagemRecuperacao.value =
+      'Se o email estiver cadastrado, você receberá instruções para redefinir sua senha.'
+    tipoMensagemRecuperacao.value = 'sucesso'
+  } catch (error) {
+    console.error(error)
+    mensagemRecuperacao.value =
+      'Se o email estiver cadastrado, você receberá instruções para redefinir sua senha.'
+    tipoMensagemRecuperacao.value = 'erro'
+  } finally {
+    carregandoRecuperacao.value = false
+  }
+}
 </script>
 
 <template>
@@ -110,6 +153,44 @@ const login = async () => {
     <button @click="login" :disabled="carregando">
       {{ carregando ? 'Entrando...' : 'Entrar' }}
     </button>
+
+    <button class="link-recuperacao" type="button" @click="abrirRecuperacaoSenha">
+      Esqueci minha senha
+    </button>
+
+    <div v-if="exibirRecuperacaoSenha" class="painel-recuperacao">
+      <p class="texto-recuperacao">
+        Informe seu e-mail para receber as instruções de redefinição de senha.
+      </p>
+
+      <input
+        v-model="emailRecuperacao"
+        type="email"
+        placeholder="Digite seu e-mail"
+      />
+
+      <p
+        v-if="mensagemRecuperacao"
+        :class="['mensagem-recuperacao', `mensagem-${tipoMensagemRecuperacao}`]"
+      >
+        {{ mensagemRecuperacao }}
+      </p>
+
+      <div class="acoes-recuperacao">
+        <button type="button" @click="fecharRecuperacaoSenha">Cancelar</button>
+        <button
+          type="button"
+          :disabled="carregandoRecuperacao"
+          @click="enviarRecuperacaoSenha"
+        >
+          {{
+            carregandoRecuperacao
+              ? 'Enviando...'
+              : 'Enviar redefinição'
+          }}
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -155,5 +236,46 @@ button {
   padding: 10px;
   border-radius: 6px;
   cursor: pointer;
+}
+
+.link-recuperacao {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #2563eb;
+  text-align: left;
+}
+
+.painel-recuperacao {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.texto-recuperacao {
+  margin: 0;
+  color: #334155;
+}
+
+.mensagem-recuperacao {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.mensagem-sucesso {
+  color: #166534;
+}
+
+.mensagem-erro {
+  color: #b45309;
+}
+
+.acoes-recuperacao {
+  display: flex;
+  gap: 8px;
 }
 </style>
