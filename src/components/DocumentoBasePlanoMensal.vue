@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { auth } from '../firebase/firebase.js'
 import { useAuthStore } from '../stores/authStore'
+import { ROLES, isRoleCoordenacao } from '../constants/roles'
 
 const API_URL = import.meta.env.VITE_API_URL
 const authStore = useAuthStore()
@@ -30,8 +31,8 @@ const desativandoId = ref('')
 const erro = ref('')
 const sucesso = ref('')
 
-const isCoordenador = computed(() => authStore.role === 'coordenador')
-const isEducador = computed(() => authStore.role === 'educador')
+const isCoordenador = computed(() => isRoleCoordenacao(authStore.role))
+const isEducador = computed(() => authStore.role === ROLES.EDUCADOR)
 
 function formatarSemestreLabel(semestreAtual) {
   return String(semestreAtual) === '1' ? '1º semestre' : '2º semestre'

@@ -12,3 +12,7 @@ export const ROLES_COORDENACAO = [
 export function isRoleCoordenacao(role) {
   return ROLES_COORDENACAO.includes(role)
 }
+
+export function isRoleEducador(role) {
+  return role === ROLES.EDUCADOR
+}

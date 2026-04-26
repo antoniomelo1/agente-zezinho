@@ -1,4 +1,5 @@
 import admin, { adminDb } from '../firebaseAdmin.js'
+import { ROLES, isRoleCoordenacao } from '../constants/roles.js'
 
 function normalizarTexto(valor) {
   if (typeof valor !== 'string') {
@@ -89,7 +90,7 @@ function validarUsuarioDocumentoBase(usuario = {}) {
     throw new Error('Usuário autenticado sem vínculo institucional válido')
   }
 
-  if (usuario.role === 'educador' && !usuario.oficinaId) {
+  if (usuario.role === ROLES.EDUCADOR && !usuario.oficinaId) {
     throw new Error('Educador autenticado sem vínculo institucional válido')
   }
 
@@ -113,11 +114,11 @@ function obterEscopoOficinasCoordenador(usuario = {}) {
 }
 
 function documentoEstaNoEscopo(usuario = {}, oficinaIdDocumento = '') {
-  if (usuario.role === 'educador') {
+  if (usuario.role === ROLES.EDUCADOR) {
     return normalizarTexto(usuario.oficinaId) === normalizarTexto(oficinaIdDocumento)
   }
 
-  if (usuario.role === 'coordenador') {
+  if (isRoleCoordenacao(usuario.role)) {
     const escopo = obterEscopoOficinasCoordenador(usuario)
 
     if (escopo.length === 0) {
@@ -133,7 +134,7 @@ function documentoEstaNoEscopo(usuario = {}, oficinaIdDocumento = '') {
 function validarPermissaoEdicaoDocumentoBase(usuario = {}) {
   validarUsuarioDocumentoBase(usuario)
 
-  if (usuario.role !== 'educador') {
+  if (usuario.role !== ROLES.EDUCADOR) {
     throw new Error(
       'A coordenação pode revisar e ativar versões, mas a elaboração e a edição do Documento Base do Plano Mensal permanecem com o educador.'
     )
@@ -145,7 +146,7 @@ function validarPermissaoEdicaoDocumentoBase(usuario = {}) {
 function validarPermissaoGovernancaDocumentoBase(usuario = {}) {
   validarUsuarioDocumentoBase(usuario)
 
-  if (usuario.role !== 'coordenador') {
+  if (!isRoleCoordenacao(usuario.role)) {
     throw new Error(
       'Somente a coordenação pode ativar ou desativar a versão do Documento Base do Plano Mensal.'
     )
@@ -214,11 +215,11 @@ export async function listarDocumentosBasePlanoMensal({
 
   let oficinaIdFiltro = normalizarTexto(oficinaId)
 
-  if (usuario.role === 'educador') {
+  if (usuario.role === ROLES.EDUCADOR) {
     oficinaIdFiltro = normalizarTexto(usuario.oficinaId)
   }
 
-  if (usuario.role === 'coordenador' && oficinaIdFiltro) {
+  if (isRoleCoordenacao(usuario.role) && oficinaIdFiltro) {
     const escopo = obterEscopoOficinasCoordenador(usuario)
 
     if (escopo.length > 0 && !escopo.includes(oficinaIdFiltro)) {
@@ -246,7 +247,7 @@ export async function listarDocumentosBasePlanoMensal({
 
   let documentos = snapshot.docs
     .map(normalizarDocumento)
-  if (usuario.role === 'coordenador' && !oficinaIdFiltro) {
+  if (isRoleCoordenacao(usuario.role) && !oficinaIdFiltro) {
     const escopo = obterEscopoOficinasCoordenador(usuario)
 
     if (escopo.length > 0) {

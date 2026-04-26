@@ -9,6 +9,7 @@ import {
 } from 'firebase/auth'
 import { doc, getDoc } from 'firebase/firestore'
 import { useAuthStore } from '../stores/authStore'
+import { ROLES, isRoleCoordenacao } from '../constants/roles'
 
 const email = ref('')
 const senha = ref('')
@@ -76,9 +77,9 @@ const login = async () => {
       ...userData
     })
 
-    if (userData.role === 'coordenador') {
+    if (isRoleCoordenacao(userData.role)) {
       router.push('/painel-coordenador')
-    } else if (userData.role === 'educador') {
+    } else if (userData.role === ROLES.EDUCADOR) {
       router.push('/registro-diario')
     } else {
       authStore.limparUsuario()

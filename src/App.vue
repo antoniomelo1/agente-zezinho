@@ -5,10 +5,11 @@ import { useRouter } from 'vue-router'
 import { auth } from './firebase/firebase'
 import { signOut } from 'firebase/auth'
 import { useAuthStore } from './stores/authStore'
+import { isRoleCoordenacao } from './constants/roles'
 
 const router = useRouter()
 const authStore = useAuthStore()
-const isCoordenador = computed(() => authStore.role === 'coordenador')
+const isCoordenador = computed(() => isRoleCoordenacao(authStore.role))
 
 async function logout() {
   try {
