@@ -5,7 +5,7 @@ import fetch from 'node-fetch'
 
 import requireAuth from './middlewares/requireAuth.js'
 import requireRole from './middlewares/requireRole.js'
-import { ROLES } from './constants/roles.js'
+import { ROLES, ROLES_COORDENACAO } from './constants/roles.js'
 
 import gerarTabelaDiaria from './services/gerarTabelaDiaria.js'
 import gerarParecerSemanal from './services/gerarParecerSemanal.js'
@@ -55,7 +55,7 @@ app.get('/ping', (req, res) => {
 app.post(
   '/usuarios/educadores',
   requireAuth,
-  requireRole([ROLES.COORDENADOR]),
+  requireRole(ROLES_COORDENACAO),
   async (req, res) => {
     try {
       const { nome, email, oficinaId } = req.body
@@ -90,7 +90,7 @@ app.post(
 app.get(
   '/usuarios/educadores',
   requireAuth,
-  requireRole([ROLES.COORDENADOR]),
+  requireRole(ROLES_COORDENACAO),
   async (req, res) => {
     try {
       const educadores = await listarEducadores()
@@ -142,7 +142,7 @@ app.post('/usuarios/ativar-primeiro-acesso', requireAuth, async (req, res) => {
 app.post(
   '/coordenador/educadores/:uid/reenviar-convite',
   requireAuth,
-  requireRole([ROLES.COORDENADOR]),
+  requireRole(ROLES_COORDENACAO),
   async (req, res) => {
     try {
       const resultado = await reenviarConviteEducador({
@@ -178,7 +178,7 @@ app.post(
 app.get(
   '/coordenador/leitura-operacional',
   requireAuth,
-  requireRole([ROLES.COORDENADOR]),
+  requireRole(ROLES_COORDENACAO),
   async (req, res) => {
     try {
       const leitura = await listarLeituraOperacionalCoordenador({
@@ -500,7 +500,7 @@ app.post(
 app.post(
   '/documento-base-plano-mensal',
   requireAuth,
-  requireRole([ROLES.EDUCADOR, ROLES.COORDENADOR]),
+  requireRole([ROLES.EDUCADOR, ...ROLES_COORDENACAO]),
   async (req, res) => {
     try {
       const documento = await salvarDocumentoBasePlanoMensal({
@@ -536,7 +536,7 @@ app.post(
 app.get(
   '/documento-base-plano-mensal',
   requireAuth,
-  requireRole([ROLES.EDUCADOR, ROLES.COORDENADOR]),
+  requireRole([ROLES.EDUCADOR, ...ROLES_COORDENACAO]),
   async (req, res) => {
     try {
       const resposta = await listarDocumentosBasePlanoMensal({
@@ -567,7 +567,7 @@ app.get(
 app.post(
   '/documento-base-plano-mensal/ativar',
   requireAuth,
-  requireRole([ROLES.EDUCADOR, ROLES.COORDENADOR]),
+  requireRole([ROLES.EDUCADOR, ...ROLES_COORDENACAO]),
   async (req, res) => {
     try {
       const documento = await ativarDocumentoBasePlanoMensal({
@@ -602,7 +602,7 @@ app.post(
 app.post(
   '/documento-base-plano-mensal/desativar',
   requireAuth,
-  requireRole([ROLES.EDUCADOR, ROLES.COORDENADOR]),
+  requireRole([ROLES.EDUCADOR, ...ROLES_COORDENACAO]),
   async (req, res) => {
     try {
       const documento = await desativarDocumentoBasePlanoMensal({
