@@ -24,7 +24,7 @@ const sucesso = ref('')
 
 function obterMensagemErroValidacao(error) {
   if (error?.code === 'auth/expired-action-code') {
-    return 'Este link expirou. Solicite um novo acesso ao coordenador.'
+    return 'Este link expirou. Solicite um novo acesso à gestão pedagógica.'
   }
 
   if (error?.code === 'auth/invalid-action-code') {
@@ -36,11 +36,11 @@ function obterMensagemErroValidacao(error) {
 
 function obterMensagemErroConfirmacao(error) {
   if (error?.code === 'auth/expired-action-code') {
-    return 'Este link expirou. Solicite um novo acesso ao coordenador.'
+    return 'Este link expirou. Solicite um novo acesso à gestão pedagógica.'
   }
 
   if (error?.code === 'auth/invalid-action-code') {
-    return 'Este link já foi utilizado. Solicite um novo acesso ao coordenador.'
+    return 'Este link já foi utilizado. Solicite um novo acesso à gestão pedagógica.'
   }
 
   return error?.message || 'Não foi possível concluir o primeiro acesso.'

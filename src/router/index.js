@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { auth } from '../firebase/firebase'
 import { useAuthStore } from '../stores/authStore'
-import { ROLES, ROLES_COORDENACAO, isRoleCoordenacao } from '../constants/roles'
+import { ROLES, ROLES_COORDENACAO_PEDAGOGICA, isRoleCoordenacaoPedagogica } from '../constants/roles'
 
 import RegistrarResumoDiario from '../components/RegistrarResumoDiario.vue'
 import RelatorioMensal from '../components/RelatorioMensal.vue'
@@ -23,13 +23,13 @@ const routes = [
   {
     path: '/painel-coordenador',
     component: PainelCoordenador,
-    meta: { requiresAuth: true, roles: ROLES_COORDENACAO }
+    meta: { requiresAuth: true, roles: ROLES_COORDENACAO_PEDAGOGICA }
   },
 
   {
     path: '/gestao-usuarios',
     component: GestaoUsuarios,
-    meta: { requiresAuth: true, role: ROLES.COORDENADOR_MASTER }
+    meta: { requiresAuth: true, role: ROLES.GESTOR_PEDAGOGICO }
   },
 
   {
@@ -53,7 +53,7 @@ const routes = [
   {
     path: '/base-institucional',
     component: BaseInstitucional,
-    meta: { requiresAuth: true, roles: [ROLES.EDUCADOR, ...ROLES_COORDENACAO] }
+    meta: { requiresAuth: true, roles: [ROLES.EDUCADOR, ...ROLES_COORDENACAO_PEDAGOGICA] }
   },
 
   {
@@ -68,7 +68,7 @@ const router = createRouter({
 })
 
 function redirecionarPorRole(role) {
-  if (isRoleCoordenacao(role)) {
+  if (isRoleCoordenacaoPedagogica(role)) {
     return '/painel-coordenador'
   }
 

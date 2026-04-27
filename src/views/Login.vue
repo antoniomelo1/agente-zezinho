@@ -9,7 +9,7 @@ import {
 } from 'firebase/auth'
 import { doc, getDoc } from 'firebase/firestore'
 import { useAuthStore } from '../stores/authStore'
-import { ROLES, isRoleCoordenacao } from '../constants/roles'
+import { ROLES, isRoleCoordenacaoPedagogica } from '../constants/roles'
 
 const email = ref('')
 const senha = ref('')
@@ -39,7 +39,7 @@ const possuiVinculoAtivo = (userData) => {
 const encerrarSessaoBloqueada = async () => {
   authStore.limparUsuario()
   await signOut(auth)
-  alert('Seu acesso ainda não foi liberado. Procure o coordenador.')
+  alert('Seu acesso ainda não foi liberado. Procure a gestão pedagógica.')
 }
 
 const login = async () => {
@@ -77,7 +77,7 @@ const login = async () => {
       ...userData
     })
 
-    if (isRoleCoordenacao(userData.role)) {
+    if (isRoleCoordenacaoPedagogica(userData.role)) {
       router.push('/painel-coordenador')
     } else if (userData.role === ROLES.EDUCADOR) {
       router.push('/registro-diario')

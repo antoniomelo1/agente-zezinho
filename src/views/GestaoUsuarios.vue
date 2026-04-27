@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { auth } from '../firebase/firebase.js'
 import { useAuthStore } from '../stores/authStore'
-import { ROLES, isRoleCoordenadorMaster } from '../constants/roles'
+import { ROLES, isRoleGestorPedagogico } from '../constants/roles'
 
 const API_URL = import.meta.env.VITE_API_URL
 const authStore = useAuthStore()
@@ -30,7 +30,7 @@ const novoCoordenador = ref({
   oficinaId: ''
 })
 
-const isMaster = computed(() => isRoleCoordenadorMaster(authStore.role))
+const isGestorPedagogico = computed(() => isRoleGestorPedagogico(authStore.role))
 const oficinaPadraoId = computed(() => oficinas.value[0]?.id || '')
 
 async function obterToken() {
@@ -53,12 +53,12 @@ function limparLink() {
 }
 
 function textoRole(role) {
-  if (role === ROLES.COORDENADOR_MASTER) {
-    return 'Coordenador master'
+  if (role === ROLES.GESTOR_PEDAGOGICO) {
+    return 'Gestor pedagógico'
   }
 
-  if (role === ROLES.COORDENADOR) {
-    return 'Coordenador'
+  if (role === ROLES.COORDENADOR_PEDAGOGICO) {
+    return 'Coordenador pedagógico'
   }
 
   if (role === ROLES.EDUCADOR) {
@@ -109,7 +109,7 @@ function podeAlterarUsuario(usuario) {
     return false
   }
 
-  return usuario.role !== ROLES.COORDENADOR_MASTER
+  return usuario.role !== ROLES.GESTOR_PEDAGOGICO
 }
 
 function usuarioEstaInativo(usuario) {
@@ -117,7 +117,7 @@ function usuarioEstaInativo(usuario) {
 }
 
 async function carregarUsuarios() {
-  if (!isMaster.value) {
+  if (!isGestorPedagogico.value) {
     return
   }
 
@@ -157,7 +157,7 @@ function aplicarOficinaPadrao() {
 }
 
 async function carregarOficinas() {
-  if (!isMaster.value) {
+  if (!isGestorPedagogico.value) {
     return
   }
 
@@ -242,9 +242,12 @@ async function criarEducador() {
 async function criarCoordenador() {
   const criado = await criarUsuario(
     '/admin/usuarios/coordenadores',
-    novoCoordenador.value,
+    {
+      ...novoCoordenador.value,
+      role: ROLES.COORDENADOR_PEDAGOGICO
+    },
     salvandoCoordenador,
-    'Coordenador criado com sucesso. O link institucional de primeiro acesso foi gerado.'
+    'Coordenador pedagógico criado com sucesso. O link institucional de primeiro acesso foi gerado.'
   )
 
   if (criado) {
@@ -323,12 +326,12 @@ onMounted(async () => {
 
       <h2>Gestão de Usuários</h2>
       <p>
-        Administração institucional de acessos para educadores e coordenadores.
+        Administração institucional de acessos para educadores e coordenadores pedagógicos.
       </p>
     </header>
 
-    <p v-if="!isMaster" class="erro">
-      Esta área é restrita à coordenação master.
+    <p v-if="!isGestorPedagogico" class="erro">
+      Esta área é restrita à gestão pedagógica.
     </p>
 
     <template v-else>
@@ -359,8 +362,8 @@ onMounted(async () => {
 
         <form class="painel" @submit.prevent="criarCoordenador">
           <div>
-            <h3>Novo coordenador</h3>
-            <p>Cria conta de coordenação comum. Coordenador master não é criado por esta tela.</p>
+            <h3>Novo coordenador pedagógico</h3>
+            <p>Cria conta de coordenação pedagógica. Gestor pedagógico não é criado por esta tela.</p>
           </div>
 
           <input v-model="novoCoordenador.nome" type="text" placeholder="Nome completo" />
@@ -377,7 +380,7 @@ onMounted(async () => {
           </select>
 
           <button type="submit" :disabled="salvandoCoordenador || !novoCoordenador.oficinaId">
-            {{ salvandoCoordenador ? 'Criando...' : 'Criar coordenador' }}
+            {{ salvandoCoordenador ? 'Criando...' : 'Criar coordenador pedagógico' }}
           </button>
         </form>
       </section>
@@ -433,7 +436,7 @@ onMounted(async () => {
                   <span v-if="usuario.uid === authStore.uid" class="texto-apoio">
                     Conta atual
                   </span>
-                  <span v-else-if="usuario.role === ROLES.COORDENADOR_MASTER" class="texto-apoio">
+                  <span v-else-if="usuario.role === ROLES.GESTOR_PEDAGOGICO" class="texto-apoio">
                     Protegido
                   </span>
                   <button

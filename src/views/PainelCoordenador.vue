@@ -318,7 +318,7 @@ onMounted(() => {
 <template>
   <div class="painel-container">
     <section class="cabecalho">
-      <h2>Painel do Coordenador</h2>
+      <h2>Painel Pedagógico</h2>
       <p class="cabecalho-texto">
         Gestão institucional de educadores e leitura operacional das oficinas
       </p>

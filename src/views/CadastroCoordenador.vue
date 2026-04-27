@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { auth, db } from '../firebase/firebase'
 import { createUserWithEmailAndPassword } from 'firebase/auth'
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { ROLES } from '../constants/roles'
 
 const nome = ref('')
 const email = ref('')
@@ -33,7 +34,7 @@ const cadastrar = async () => {
       uid,
       nome: nome.value,
       email: email.value,
-      role: 'coordenador',
+      role: ROLES.COORDENADOR_PEDAGOGICO,
       status: 'ativo',
       oficinasResponsaveis: [],
       ativo: true,
@@ -53,7 +54,7 @@ const cadastrar = async () => {
 
 <template>
   <div class="container-auth">
-    <h2>Cadastro de Coordenador</h2>
+    <h2>Cadastro de Coordenador Pedagógico</h2>
 
     <input v-model="nome" type="text" placeholder="Nome completo" />
     <input v-model="email" type="email" placeholder="Email institucional" />

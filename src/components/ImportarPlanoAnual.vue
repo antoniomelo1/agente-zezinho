@@ -3,7 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { doc, getDoc, setDoc, Timestamp } from 'firebase/firestore'
 import { db } from '../firebase/firebase'
 import { useAuthStore } from '../stores/authStore'
-import { isRoleCoordenacao } from '../constants/roles'
+import { isRoleCoordenacaoPedagogica } from '../constants/roles'
 
 const textoPlano = ref('')
 const carregando = ref(false)
@@ -11,7 +11,7 @@ const jaExiste = ref(false)
 
 const ANO_PLANO = '2026'
 const authStore = useAuthStore()
-const isCoordenador = computed(() => isRoleCoordenacao(authStore.role))
+const isCoordenador = computed(() => isRoleCoordenacaoPedagogica(authStore.role))
 
 onMounted(async () => {
   const refPlano = doc(db, 'plano_anual', ANO_PLANO)
