@@ -1,5 +1,5 @@
 import admin, { adminDb } from '../firebaseAdmin.js'
-import { ROLES, isRoleCoordenacao } from '../constants/roles.js'
+import { ROLES, isRoleCoordenacao, isRoleCoordenadorMaster } from '../constants/roles.js'
 
 function normalizarTexto(valor) {
   if (typeof valor !== 'string') {
@@ -118,6 +118,10 @@ function documentoEstaNoEscopo(usuario = {}, oficinaIdDocumento = '') {
     return normalizarTexto(usuario.oficinaId) === normalizarTexto(oficinaIdDocumento)
   }
 
+  if (isRoleCoordenadorMaster(usuario.role)) {
+    return true
+  }
+
   if (isRoleCoordenacao(usuario.role)) {
     const escopo = obterEscopoOficinasCoordenador(usuario)
 
@@ -219,7 +223,7 @@ export async function listarDocumentosBasePlanoMensal({
     oficinaIdFiltro = normalizarTexto(usuario.oficinaId)
   }
 
-  if (isRoleCoordenacao(usuario.role) && oficinaIdFiltro) {
+  if (isRoleCoordenacao(usuario.role) && !isRoleCoordenadorMaster(usuario.role) && oficinaIdFiltro) {
     const escopo = obterEscopoOficinasCoordenador(usuario)
 
     if (escopo.length > 0 && !escopo.includes(oficinaIdFiltro)) {
@@ -247,7 +251,7 @@ export async function listarDocumentosBasePlanoMensal({
 
   let documentos = snapshot.docs
     .map(normalizarDocumento)
-  if (isRoleCoordenacao(usuario.role) && !oficinaIdFiltro) {
+  if (isRoleCoordenacao(usuario.role) && !isRoleCoordenadorMaster(usuario.role) && !oficinaIdFiltro) {
     const escopo = obterEscopoOficinasCoordenador(usuario)
 
     if (escopo.length > 0) {

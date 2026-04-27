@@ -26,6 +26,15 @@ import reenviarConviteEducador from './services/reenviarConviteEducador.js'
 import listarEducadores from './services/listarEducadores.js'
 import salvarRegistroDiario from './services/salvarRegistroDiario.js'
 import listarLeituraOperacionalCoordenador from './services/listarLeituraOperacionalCoordenador.js'
+import {
+  GestaoUsuariosError,
+  criarCoordenadorPorMaster,
+  criarEducadorPorMaster,
+  desabilitarUsuarioInstitucional,
+  habilitarUsuarioInstitucional,
+  listarOficinasInstitucionais,
+  listarUsuariosInstitucionais
+} from './services/gestaoUsuarios.js'
 
 console.log(
   'OPENAI_API_KEY carregada?',
@@ -103,6 +112,135 @@ app.get(
   }
 )
 
+function responderErroGestaoUsuarios(res, error, mensagemPadrao) {
+  console.error(error)
+
+  if (error instanceof GestaoUsuariosError) {
+    return res.status(error.statusCode).json({ erro: error.publicMessage })
+  }
+
+  return res.status(500).json({ erro: mensagemPadrao })
+}
+
+app.get(
+  '/admin/usuarios',
+  requireAuth,
+  requireRole([ROLES.COORDENADOR_MASTER]),
+  async (req, res) => {
+    try {
+      const usuarios = await listarUsuariosInstitucionais({
+        operador: req.currentUser
+      })
+
+      res.json({ usuarios })
+    } catch (error) {
+      responderErroGestaoUsuarios(res, error, 'Erro ao listar usuários institucionais')
+    }
+  }
+)
+
+app.get(
+  '/admin/oficinas',
+  requireAuth,
+  requireRole([ROLES.COORDENADOR_MASTER]),
+  async (req, res) => {
+    try {
+      const oficinas = await listarOficinasInstitucionais({
+        operador: req.currentUser
+      })
+
+      res.json({ oficinas })
+    } catch (error) {
+      responderErroGestaoUsuarios(res, error, 'Erro ao listar oficinas institucionais')
+    }
+  }
+)
+
+app.post(
+  '/admin/usuarios/educadores',
+  requireAuth,
+  requireRole([ROLES.COORDENADOR_MASTER]),
+  async (req, res) => {
+    try {
+      const resultado = await criarEducadorPorMaster({
+        payload: req.body,
+        operador: req.currentUser
+      })
+
+      res.status(201).json({
+        mensagem: 'Educador criado com sucesso',
+        ...resultado
+      })
+    } catch (error) {
+      responderErroGestaoUsuarios(res, error, 'Erro ao criar educador')
+    }
+  }
+)
+
+app.post(
+  '/admin/usuarios/coordenadores',
+  requireAuth,
+  requireRole([ROLES.COORDENADOR_MASTER]),
+  async (req, res) => {
+    try {
+      const resultado = await criarCoordenadorPorMaster({
+        payload: req.body,
+        operador: req.currentUser
+      })
+
+      res.status(201).json({
+        mensagem: 'Coordenador criado com sucesso',
+        ...resultado
+      })
+    } catch (error) {
+      responderErroGestaoUsuarios(res, error, 'Erro ao criar coordenador')
+    }
+  }
+)
+
+app.patch(
+  '/admin/usuarios/:uid/desabilitar',
+  requireAuth,
+  requireRole([ROLES.COORDENADOR_MASTER]),
+  async (req, res) => {
+    try {
+      const usuario = await desabilitarUsuarioInstitucional({
+        uid: req.params.uid,
+        motivo: req.body?.motivoDesabilitacao,
+        operador: req.currentUser
+      })
+
+      res.json({
+        mensagem: 'Usuário desabilitado com segurança',
+        usuario
+      })
+    } catch (error) {
+      responderErroGestaoUsuarios(res, error, 'Erro ao desabilitar usuário')
+    }
+  }
+)
+
+app.patch(
+  '/admin/usuarios/:uid/habilitar',
+  requireAuth,
+  requireRole([ROLES.COORDENADOR_MASTER]),
+  async (req, res) => {
+    try {
+      const usuario = await habilitarUsuarioInstitucional({
+        uid: req.params.uid,
+        operador: req.currentUser
+      })
+
+      res.json({
+        mensagem: 'Usuário habilitado com segurança',
+        usuario
+      })
+    } catch (error) {
+      responderErroGestaoUsuarios(res, error, 'Erro ao habilitar usuário')
+    }
+  }
+)
+
 app.post('/usuarios/ativar-primeiro-acesso', requireAuth, async (req, res) => {
   try {
     const resultado = await ativarEducadorAposRedefinicao({
@@ -119,7 +257,7 @@ app.post('/usuarios/ativar-primeiro-acesso', requireAuth, async (req, res) => {
 
     if (
       error.message === 'Usuário sem cadastro institucional' ||
-      error.message === 'Apenas educadores podem concluir primeiro acesso' ||
+      error.message === 'Apenas usuários convidados podem concluir primeiro acesso' ||
       error.message === 'E-mail autenticado divergente do cadastro institucional' ||
       error.message === 'Usuário inativo' ||
       error.message === 'Usuário não está pendente de ativação'

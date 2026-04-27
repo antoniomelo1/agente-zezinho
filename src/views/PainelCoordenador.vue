@@ -4,10 +4,6 @@ import { auth } from '../firebase/firebase.js'
 
 const API_URL = import.meta.env.VITE_API_URL
 
-const nome = ref('')
-const email = ref('')
-const oficinaId = ref('programacao')
-const carregando = ref(false)
 const carregandoEducadores = ref(false)
 const carregandoLeituraOperacional = ref(false)
 const reenviando = ref(false)
@@ -15,7 +11,6 @@ const erro = ref('')
 const erroLeituraOperacional = ref('')
 const sucesso = ref('')
 const linkPrimeiroAcesso = ref('')
-const ultimoEducadorCriado = ref(null)
 const educadores = ref([])
 const leituraOperacional = ref({
   oficinas: [],
@@ -35,59 +30,6 @@ async function obterToken() {
   }
 
   return await usuario.getIdToken()
-}
-
-async function criarEducador() {
-  if (!nome.value || !email.value || !oficinaId.value) {
-    erro.value = 'Informe nome, email e oficina.'
-    sucesso.value = ''
-    linkPrimeiroAcesso.value = ''
-    return
-  }
-
-  erro.value = ''
-  sucesso.value = ''
-  linkPrimeiroAcesso.value = ''
-  carregando.value = true
-
-  try {
-    const token = await obterToken()
-
-    const response = await fetch(`${API_URL}/usuarios/educadores`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        nome: nome.value,
-        email: email.value,
-        oficinaId: oficinaId.value
-      })
-    })
-
-    const data = await response.json()
-
-    if (!response.ok) {
-      erro.value = data.erro || 'Erro ao criar educador.'
-      return
-    }
-
-    ultimoEducadorCriado.value = data.usuario || null
-    linkPrimeiroAcesso.value = data.linkPrimeiroAcesso || ''
-    sucesso.value =
-      'Educador criado com sucesso. O link institucional de primeiro acesso foi gerado pelo backend.'
-
-    await carregarEducadores()
-
-    nome.value = ''
-    email.value = ''
-    oficinaId.value = 'programacao'
-  } catch (error) {
-    erro.value = error.message || 'Erro ao criar educador.'
-  } finally {
-    carregando.value = false
-  }
 }
 
 async function carregarEducadores() {
@@ -195,7 +137,6 @@ async function reenviarConvite(uid) {
       return
     }
 
-    ultimoEducadorCriado.value = data.usuario || null
     linkPrimeiroAcesso.value = data.linkPrimeiroAcesso || ''
     sucesso.value =
       'Novo link institucional de primeiro acesso gerado com sucesso.'
@@ -384,43 +325,6 @@ onMounted(() => {
     </section>
 
     <div class="painel-grid">
-      <section class="card card-formulario">
-        <div class="bloco-titulo">
-          <h3 class="card-titulo">Novo educador</h3>
-          <span class="listagem-subtexto">
-            Criação institucional com link seguro de primeiro acesso
-          </span>
-        </div>
-
-        <input v-model="nome" type="text" placeholder="Nome completo" />
-        <input v-model="email" type="email" placeholder="Email institucional" />
-
-        <select v-model="oficinaId">
-          <option value="programacao">Oficina de Programação</option>
-        </select>
-
-        <button @click="criarEducador" :disabled="carregando">
-          {{ carregando ? 'Criando...' : 'Criar educador' }}
-        </button>
-
-        <button
-          v-if="ultimoEducadorCriado?.uid"
-          class="secundario"
-          @click="reenviarConvite(ultimoEducadorCriado.uid)"
-          :disabled="reenviando"
-        >
-          {{ reenviando ? 'Gerando novo link...' : 'Reenviar convite do último educador' }}
-        </button>
-
-        <p v-if="erro" class="erro">{{ erro }}</p>
-        <p v-if="sucesso" class="sucesso">{{ sucesso }}</p>
-
-        <div v-if="linkPrimeiroAcesso" class="link-box">
-          <p>Link institucional de primeiro acesso:</p>
-          <textarea readonly :value="linkPrimeiroAcesso"></textarea>
-        </div>
-      </section>
-
       <section class="card card-listagem card-listagem-secundaria">
         <button class="listagem-toggle" @click="isEducadoresOpen = !isEducadoresOpen">
           <span class="listagem-titulo-wrap">
@@ -436,6 +340,14 @@ onMounted(() => {
         </button>
 
         <div v-if="isEducadoresOpen" class="listagem-conteudo">
+          <p v-if="erro" class="erro">{{ erro }}</p>
+          <p v-if="sucesso" class="sucesso">{{ sucesso }}</p>
+
+          <div v-if="linkPrimeiroAcesso" class="link-box">
+            <p>Link institucional de primeiro acesso:</p>
+            <textarea readonly :value="linkPrimeiroAcesso"></textarea>
+          </div>
+
           <p v-if="carregandoEducadores" class="estado-listagem">Carregando educadores...</p>
           <p v-else-if="educadores.length === 0" class="estado-listagem">
             Nenhum educador cadastrado ate o momento.
@@ -726,7 +638,7 @@ onMounted(() => {
 
 .painel-grid {
   display: grid;
-  grid-template-columns: minmax(300px, 380px) minmax(0, 1.16fr);
+  grid-template-columns: 1fr;
   gap: 22px;
   align-items: start;
 }

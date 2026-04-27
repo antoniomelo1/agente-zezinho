@@ -13,6 +13,10 @@ export function isRoleCoordenacao(role) {
   return ROLES_COORDENACAO.includes(role)
 }
 
+export function isRoleCoordenadorMaster(role) {
+  return role === ROLES.COORDENADOR_MASTER
+}
+
 export function isRoleEducador(role) {
   return role === ROLES.EDUCADOR
 }

@@ -11,6 +11,7 @@ import BaseInstitucional from '../components/BaseInstitucional.vue'
 import Login from '../views/Login.vue'
 import PainelCoordenador from '../views/PainelCoordenador.vue'
 import PrimeiroAcesso from '../views/PrimeiroAcesso.vue'
+import GestaoUsuarios from '../views/GestaoUsuarios.vue'
 
 const routes = [
   { path: '/', redirect: '/login' },
@@ -23,6 +24,12 @@ const routes = [
     path: '/painel-coordenador',
     component: PainelCoordenador,
     meta: { requiresAuth: true, roles: ROLES_COORDENACAO }
+  },
+
+  {
+    path: '/gestao-usuarios',
+    component: GestaoUsuarios,
+    meta: { requiresAuth: true, role: ROLES.COORDENADOR_MASTER }
   },
 
   {
