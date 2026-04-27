@@ -15,7 +15,7 @@ export default async function ativarEducadorAposRedefinicao({ uid, email }) {
 
   const userData = userSnap.data()
 
-  if (![ROLES.EDUCADOR, ROLES.COORDENADOR].includes(userData.role)) {
+  if (![ROLES.EDUCADOR, ROLES.COORDENADOR_PEDAGOGICO].includes(userData.role)) {
     throw new Error('Apenas usuários convidados podem concluir primeiro acesso')
   }
 

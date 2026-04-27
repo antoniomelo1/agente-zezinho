@@ -1,5 +1,5 @@
 import admin, { adminDb } from '../firebaseAdmin.js'
-import { ROLES, isRoleCoordenacao, isRoleCoordenadorMaster } from '../constants/roles.js'
+import { ROLES, isRoleCoordenacaoPedagogica, isRoleGestorPedagogico } from '../constants/roles.js'
 
 function normalizarTexto(valor) {
   if (typeof valor !== 'string') {
@@ -118,11 +118,11 @@ function documentoEstaNoEscopo(usuario = {}, oficinaIdDocumento = '') {
     return normalizarTexto(usuario.oficinaId) === normalizarTexto(oficinaIdDocumento)
   }
 
-  if (isRoleCoordenadorMaster(usuario.role)) {
+  if (isRoleGestorPedagogico(usuario.role)) {
     return true
   }
 
-  if (isRoleCoordenacao(usuario.role)) {
+  if (isRoleCoordenacaoPedagogica(usuario.role)) {
     const escopo = obterEscopoOficinasCoordenador(usuario)
 
     if (escopo.length === 0) {
@@ -150,7 +150,7 @@ function validarPermissaoEdicaoDocumentoBase(usuario = {}) {
 function validarPermissaoGovernancaDocumentoBase(usuario = {}) {
   validarUsuarioDocumentoBase(usuario)
 
-  if (!isRoleCoordenacao(usuario.role)) {
+  if (!isRoleCoordenacaoPedagogica(usuario.role)) {
     throw new Error(
       'Somente a coordenação pode ativar ou desativar a versão do Documento Base do Plano Mensal.'
     )
@@ -223,7 +223,7 @@ export async function listarDocumentosBasePlanoMensal({
     oficinaIdFiltro = normalizarTexto(usuario.oficinaId)
   }
 
-  if (isRoleCoordenacao(usuario.role) && !isRoleCoordenadorMaster(usuario.role) && oficinaIdFiltro) {
+  if (isRoleCoordenacaoPedagogica(usuario.role) && !isRoleGestorPedagogico(usuario.role) && oficinaIdFiltro) {
     const escopo = obterEscopoOficinasCoordenador(usuario)
 
     if (escopo.length > 0 && !escopo.includes(oficinaIdFiltro)) {
@@ -251,7 +251,7 @@ export async function listarDocumentosBasePlanoMensal({
 
   let documentos = snapshot.docs
     .map(normalizarDocumento)
-  if (isRoleCoordenacao(usuario.role) && !isRoleCoordenadorMaster(usuario.role) && !oficinaIdFiltro) {
+  if (isRoleCoordenacaoPedagogica(usuario.role) && !isRoleGestorPedagogico(usuario.role) && !oficinaIdFiltro) {
     const escopo = obterEscopoOficinasCoordenador(usuario)
 
     if (escopo.length > 0) {
