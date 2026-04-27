@@ -1,7 +1,7 @@
 import crypto from 'node:crypto'
 
 import admin, { adminAuth, adminDb } from '../firebaseAdmin.js'
-import { ROLES, isRoleCoordenadorMaster } from '../constants/roles.js'
+import { ROLES, isRoleGestorPedagogico } from '../constants/roles.js'
 import gerarLinkPrimeiroAcesso from './gerarLinkPrimeiroAcesso.js'
 
 export class GestaoUsuariosError extends Error {
@@ -35,9 +35,9 @@ function validarNomeEmail({ nome, email }) {
   }
 }
 
-function validarMaster(usuario = {}) {
-  if (!isRoleCoordenadorMaster(usuario.role)) {
-    throw new GestaoUsuariosError('Acesso restrito à coordenação master.', 403)
+function validarGestorPedagogico(usuario = {}) {
+  if (!isRoleGestorPedagogico(usuario.role)) {
+    throw new GestaoUsuariosError('Acesso restrito à gestão pedagógica.', 403)
   }
 }
 
@@ -119,7 +119,7 @@ async function criarUsuarioInstitucional({
 }) {
   validarNomeEmail({ nome, email })
 
-  if (![ROLES.EDUCADOR, ROLES.COORDENADOR].includes(role)) {
+  if (![ROLES.EDUCADOR, ROLES.COORDENADOR_PEDAGOGICO].includes(role)) {
     throw new GestaoUsuariosError('Perfil institucional inválido.')
   }
 
@@ -127,7 +127,7 @@ async function criarUsuarioInstitucional({
   const emailLimpo = normalizarEmail(email)
   const oficinaIdLimpo = normalizarTexto(oficinaId)
 
-  if ([ROLES.EDUCADOR, ROLES.COORDENADOR].includes(role) && !oficinaIdLimpo) {
+  if ([ROLES.EDUCADOR, ROLES.COORDENADOR_PEDAGOGICO].includes(role) && !oficinaIdLimpo) {
     throw new GestaoUsuariosError('A oficina é obrigatória para este perfil institucional.')
   }
 
@@ -169,7 +169,7 @@ async function criarUsuarioInstitucional({
       dadosUsuario.oficinaId = oficinaIdLimpo
     }
 
-    if (role === ROLES.COORDENADOR) {
+    if (role === ROLES.COORDENADOR_PEDAGOGICO) {
       dadosUsuario.oficinasResponsaveis = [oficinaIdLimpo]
     }
 
@@ -184,7 +184,7 @@ async function criarUsuarioInstitucional({
         ativo: true,
         status: 'pendente_ativacao',
         oficinaId: role === ROLES.EDUCADOR ? oficinaIdLimpo : '',
-        oficinasResponsaveis: role === ROLES.COORDENADOR ? [oficinaIdLimpo] : undefined,
+        oficinasResponsaveis: role === ROLES.COORDENADOR_PEDAGOGICO ? [oficinaIdLimpo] : undefined,
         primeiroAcessoPendente: true
       },
       linkPrimeiroAcesso
@@ -207,7 +207,7 @@ async function criarUsuarioInstitucional({
 }
 
 export async function listarUsuariosInstitucionais({ operador }) {
-  validarMaster(operador)
+  validarGestorPedagogico(operador)
 
   const snapshot = await adminDb.collection('usuarios').get()
   const usuarios = await Promise.all(
@@ -227,7 +227,7 @@ export async function listarUsuariosInstitucionais({ operador }) {
 }
 
 export async function listarOficinasInstitucionais({ operador }) {
-  validarMaster(operador)
+  validarGestorPedagogico(operador)
 
   const snapshot = await adminDb.collection('oficinas').get()
   const oficinas = snapshot.docs
@@ -241,7 +241,7 @@ export async function criarEducadorPorMaster({
   payload,
   operador
 }) {
-  validarMaster(operador)
+  validarGestorPedagogico(operador)
 
   return criarUsuarioInstitucional({
     nome: payload?.nome,
@@ -256,13 +256,13 @@ export async function criarCoordenadorPorMaster({
   payload,
   operador
 }) {
-  validarMaster(operador)
+  validarGestorPedagogico(operador)
 
   return criarUsuarioInstitucional({
     nome: payload?.nome,
     email: payload?.email,
     oficinaId: payload?.oficinaId,
-    role: ROLES.COORDENADOR,
+    role: ROLES.COORDENADOR_PEDAGOGICO,
     criadoPorUid: operador.uid
   })
 }
@@ -293,17 +293,17 @@ export async function desabilitarUsuarioInstitucional({
   motivo,
   operador
 }) {
-  validarMaster(operador)
+  validarGestorPedagogico(operador)
 
   const usuario = await buscarUsuarioInstitucional(uid)
 
   if (usuario.uid === operador.uid) {
-    throw new GestaoUsuariosError('A coordenação master não pode desabilitar a própria conta.', 403)
+    throw new GestaoUsuariosError('A gestão pedagógica não pode desabilitar a própria conta.', 403)
   }
 
-  if (isRoleCoordenadorMaster(usuario.data.role)) {
+  if (isRoleGestorPedagogico(usuario.data.role)) {
     throw new GestaoUsuariosError(
-      'A desabilitação de coordenação master exige governança específica.',
+      'A desabilitação de gestão pedagógica exige governança específica.',
       403
     )
   }
@@ -330,13 +330,13 @@ export async function habilitarUsuarioInstitucional({
   uid,
   operador
 }) {
-  validarMaster(operador)
+  validarGestorPedagogico(operador)
 
   const usuario = await buscarUsuarioInstitucional(uid)
 
-  if (isRoleCoordenadorMaster(usuario.data.role)) {
+  if (isRoleGestorPedagogico(usuario.data.role)) {
     throw new GestaoUsuariosError(
-      'A habilitação de coordenação master exige governança específica.',
+      'A habilitação de gestão pedagógica exige governança específica.',
       403
     )
   }
