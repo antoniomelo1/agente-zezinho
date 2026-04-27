@@ -82,10 +82,11 @@ function mapearUsuario(doc, authUser = null) {
 
 function mapearOficina(doc) {
   const data = doc.data()
+  const oficinaId = normalizarTexto(data.oficinaId) || doc.id
 
   return {
-    id: doc.id,
-    nome: data.nome || data.nomeOficina || data.titulo || data.label || doc.id,
+    id: oficinaId,
+    nome: data.nome || data.nomeOficina || data.titulo || data.label || oficinaId,
     ativa: data.ativa !== false
   }
 }
@@ -103,9 +104,13 @@ async function buscarAuthUser(uid) {
 }
 
 async function validarOficinaExistente(oficinaId) {
-  const oficinaSnap = await adminDb.collection('oficinas').doc(oficinaId).get()
+  const oficinaSnap = await adminDb
+    .collection('oficinas')
+    .where('oficinaId', '==', normalizarTexto(oficinaId))
+    .limit(1)
+    .get()
 
-  if (!oficinaSnap.exists) {
+  if (oficinaSnap.empty) {
     throw new GestaoUsuariosError('Oficina institucional não encontrada.', 400)
   }
 }
