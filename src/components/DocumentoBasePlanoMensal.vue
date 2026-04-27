@@ -354,6 +354,11 @@ onMounted(() => {
         <p><strong>Oficina:</strong> {{ documento.oficinaId || 'Não informada' }}</p>
         <p><strong>Eixo da pedagogia:</strong> {{ documento.eixoPedagogia || 'Não informado' }}</p>
         <p><strong>Recursos:</strong> {{ documento.recursosPadrao.join(', ') || 'Não informados' }}</p>
+        <div v-if="documento.conteudo" class="documento-conteudo">
+          <strong>Conteúdo completo:</strong>
+          <p>{{ documento.conteudo }}</p>
+        </div>
+
         <p
           v-if="documento.criadoPor?.nome || documento.atualizadoPor?.nome"
           class="documento-meta"
@@ -507,6 +512,19 @@ button {
   margin: 10px 0 0;
   color: #86efac;
   font-weight: 600;
+}
+
+.documento-conteudo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.documento-conteudo p {
+  margin: 0;
+  line-height: 1.65;
+  white-space: pre-wrap;
 }
 
 .documento-card-topo {
