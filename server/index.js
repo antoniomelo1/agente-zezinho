@@ -25,6 +25,9 @@ import ativarEducadorAposRedefinicao from './services/ativarEducadorAposRedefini
 import reenviarConviteEducador from './services/reenviarConviteEducador.js'
 import listarEducadores from './services/listarEducadores.js'
 import salvarRegistroDiario from './services/salvarRegistroDiario.js'
+import salvarOcorrenciaCalendario, {
+  OcorrenciaCalendarioError
+} from './services/salvarOcorrenciaCalendario.js'
 import buscarTemaAnteriorSugerido from './services/buscarTemaAnteriorSugerido.js'
 import listarLeituraOperacionalCoordenador from './services/listarLeituraOperacionalCoordenador.js'
 import {
@@ -329,6 +332,33 @@ app.get(
     } catch (error) {
       console.error(error)
       res.status(500).json({ erro: 'Erro ao carregar leitura operacional' })
+    }
+  }
+)
+
+app.post(
+  '/ocorrencias-calendario',
+  requireAuth,
+  requireRole(ROLES_COORDENACAO_PEDAGOGICA),
+  async (req, res) => {
+    try {
+      const resultado = await salvarOcorrenciaCalendario({
+        payload: req.body,
+        operador: req.currentUser
+      })
+
+      res.status(201).json({
+        mensagem: 'Ocorrencia de calendario salva com sucesso',
+        ...resultado
+      })
+    } catch (error) {
+      console.error(error)
+
+      if (error instanceof OcorrenciaCalendarioError) {
+        return res.status(error.statusCode).json({ erro: error.publicMessage })
+      }
+
+      res.status(500).json({ erro: 'Erro ao salvar ocorrencia de calendario' })
     }
   }
 )
