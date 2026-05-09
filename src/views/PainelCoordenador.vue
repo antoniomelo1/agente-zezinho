@@ -325,6 +325,19 @@ onMounted(() => {
     </section>
 
     <div class="painel-grid">
+      <RouterLink class="card card-acesso-calendario" to="/ocorrencias-calendario">
+        <div class="bloco-titulo">
+          <h3 class="card-titulo">Ocorrências de calendário</h3>
+          <span class="listagem-subtexto">
+            Registrar feriados, suspensões, reuniões pedagógicas e eventos institucionais sem atividade de oficina
+          </span>
+        </div>
+
+        <span class="acesso-calendario-acao">
+          Cadastrar ocorrência
+        </span>
+      </RouterLink>
+
       <section class="card card-listagem card-listagem-secundaria">
         <button class="listagem-toggle" @click="isEducadoresOpen = !isEducadoresOpen">
           <span class="listagem-titulo-wrap">
@@ -689,6 +702,28 @@ onMounted(() => {
   min-width: 0;
   border-color: rgba(0, 242, 254, 0.14);
   box-shadow: 0 24px 54px rgba(2, 6, 23, 0.34);
+}
+
+.card-acesso-calendario {
+  text-decoration: none;
+  border-color: rgba(125, 211, 252, 0.2);
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.94), rgba(2, 6, 23, 0.88)),
+    rgba(15, 23, 42, 0.9);
+}
+
+.card-acesso-calendario:hover {
+  transform: translateY(-1px);
+  border-color: rgba(125, 211, 252, 0.42);
+}
+
+.acesso-calendario-acao {
+  width: fit-content;
+  padding: 9px 12px;
+  border-radius: 12px;
+  background: #0f172a;
+  color: #ffffff;
+  font-weight: 700;
 }
 
 .card-destaque-operacional {
