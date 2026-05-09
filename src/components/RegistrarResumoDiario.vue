@@ -1,6 +1,6 @@
 <script setup>
 import { auth } from '../firebase/firebase'
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 
 const API_URL = import.meta.env.VITE_API_URL
 
@@ -34,6 +34,10 @@ const estadoInicialRegistro = () => ({
 })
 
 const registro = ref(estadoInicialRegistro())
+const temaAnteriorEditadoManualmente = ref(false)
+const temaAnteriorSugeridoAplicado = ref('')
+const aplicandoSugestaoTemaAnterior = ref(false)
+let buscaTemaAnteriorAtual = 0
 
 const diaSemana = computed(() => {
   const dias = [
@@ -65,6 +69,74 @@ function normalizarTextoOpcional(valor) {
   }
 
   return valor.trim()
+}
+
+function aplicarTemaAnteriorSugerido(temaSugerido) {
+  aplicandoSugestaoTemaAnterior.value = true
+  registro.value.temaAnterior = temaSugerido
+  temaAnteriorSugeridoAplicado.value = temaSugerido
+
+  setTimeout(() => {
+    aplicandoSugestaoTemaAnterior.value = false
+  }, 0)
+}
+
+async function carregarTemaAnteriorSugerido() {
+  if (temaAnteriorEditadoManualmente.value || !registro.value.data) {
+    return
+  }
+
+  const temaAtual = normalizarTextoOpcional(registro.value.temaAnterior)
+
+  if (temaAtual && temaAtual !== temaAnteriorSugeridoAplicado.value) {
+    return
+  }
+
+  const usuario = auth.currentUser
+
+  if (!usuario) {
+    return
+  }
+
+  const idBusca = buscaTemaAnteriorAtual + 1
+  buscaTemaAnteriorAtual = idBusca
+
+  try {
+    const token = await usuario.getIdToken()
+    const query = new URLSearchParams({ data: registro.value.data })
+
+    const response = await fetch(
+      `${API_URL}/registros-diarios/tema-anterior-sugerido?${query.toString()}`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    )
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.erro || 'Erro ao buscar tema anterior sugerido.')
+    }
+
+    if (idBusca !== buscaTemaAnteriorAtual || temaAnteriorEditadoManualmente.value) {
+      return
+    }
+
+    const temaDepoisDaBusca = normalizarTextoOpcional(registro.value.temaAnterior)
+
+    if (temaDepoisDaBusca && temaDepoisDaBusca !== temaAnteriorSugeridoAplicado.value) {
+      return
+    }
+
+    aplicarTemaAnteriorSugerido(
+      normalizarTextoOpcional(data.temaAnteriorSugerido)
+    )
+  } catch (error) {
+    console.error('Erro ao carregar tema anterior sugerido:', error)
+  }
 }
 
 function obterTemaDiaCompatibilidade() {
@@ -145,7 +217,30 @@ async function salvarRegistro() {
 
 function limparFormulario() {
   registro.value = estadoInicialRegistro()
+  temaAnteriorEditadoManualmente.value = false
+  temaAnteriorSugeridoAplicado.value = ''
+  carregarTemaAnteriorSugerido()
 }
+
+watch(
+  () => registro.value.temaAnterior,
+  () => {
+    if (!aplicandoSugestaoTemaAnterior.value) {
+      temaAnteriorEditadoManualmente.value = true
+    }
+  }
+)
+
+watch(
+  () => registro.value.data,
+  () => {
+    carregarTemaAnteriorSugerido()
+  }
+)
+
+onMounted(() => {
+  carregarTemaAnteriorSugerido()
+})
 </script>
 
 <template>

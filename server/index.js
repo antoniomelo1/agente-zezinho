@@ -25,6 +25,7 @@ import ativarEducadorAposRedefinicao from './services/ativarEducadorAposRedefini
 import reenviarConviteEducador from './services/reenviarConviteEducador.js'
 import listarEducadores from './services/listarEducadores.js'
 import salvarRegistroDiario from './services/salvarRegistroDiario.js'
+import buscarTemaAnteriorSugerido from './services/buscarTemaAnteriorSugerido.js'
 import listarLeituraOperacionalCoordenador from './services/listarLeituraOperacionalCoordenador.js'
 import {
   GestaoUsuariosError,
@@ -338,6 +339,37 @@ app.get(
 // ======================================================
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY
+
+app.get(
+  '/registros-diarios/tema-anterior-sugerido',
+  requireAuth,
+  requireRole([ROLES.EDUCADOR]),
+  async (req, res) => {
+    try {
+      const resultado = await buscarTemaAnteriorSugerido({
+        uid: req.auth.uid,
+        dataSelecionada: req.query.data
+      })
+
+      res.json(resultado)
+    } catch (error) {
+      console.error(error)
+
+      if (
+        error.message === 'Usuario autenticado obrigatorio' ||
+        error.message === 'Data selecionada invalida'
+      ) {
+        return res.status(400).json({ erro: error.message })
+      }
+
+      if (error.message === 'Usuario sem cadastro institucional') {
+        return res.status(403).json({ erro: error.message })
+      }
+
+      res.status(500).json({ erro: 'Erro ao buscar tema anterior sugerido' })
+    }
+  }
+)
 
 app.post(
   '/registros-diarios',
