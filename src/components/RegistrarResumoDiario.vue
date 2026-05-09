@@ -277,9 +277,13 @@ onMounted(() => {
         Tipo de aula
         <select v-model="registro.tipoAula">
           <option>aula regular</option>
-          <option>aulao</option>
+          <option>aulão</option>
           <option>projeto</option>
           <option>hackathon</option>
+          <option>mentoria</option>
+          <option>passeio pedagógico</option>
+          <option>formatura</option>
+          <option>gincana esportiva</option>
         </select>
       </label>
     </div>
