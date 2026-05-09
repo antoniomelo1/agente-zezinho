@@ -12,6 +12,7 @@ import Login from '../views/Login.vue'
 import PainelCoordenador from '../views/PainelCoordenador.vue'
 import PrimeiroAcesso from '../views/PrimeiroAcesso.vue'
 import GestaoUsuarios from '../views/GestaoUsuarios.vue'
+import OcorrenciasCalendario from '../views/OcorrenciasCalendario.vue'
 
 const routes = [
   { path: '/', redirect: '/login' },
@@ -30,6 +31,12 @@ const routes = [
     path: '/gestao-usuarios',
     component: GestaoUsuarios,
     meta: { requiresAuth: true, role: ROLES.GESTOR_PEDAGOGICO }
+  },
+
+  {
+    path: '/ocorrencias-calendario',
+    component: OcorrenciasCalendario,
+    meta: { requiresAuth: true, roles: ROLES_COORDENACAO_PEDAGOGICA }
   },
 
   {
