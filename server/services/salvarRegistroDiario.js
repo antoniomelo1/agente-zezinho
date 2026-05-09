@@ -9,7 +9,11 @@ const TIPOS_AULA_PADRAO = new Set([
   'aula regular',
   'aulão',
   'projeto',
-  'hackathon'
+  'hackathon',
+  'mentoria',
+  'passeio pedagógico',
+  'formatura',
+  'gincana esportiva'
 ])
 
 function normalizarTexto(valor) {
