@@ -28,6 +28,9 @@ export default async function montarSemanaRelatorioMensal(semana) {
     semanaProcessada: {
       identificador: semana.label,
       periodo: montarPeriodoOrdenado(semana.inicio, semana.fim),
+      observacoesInstitucionais: Array.isArray(semana.observacoesInstitucionais)
+        ? semana.observacoesInstitucionais
+        : [],
       dias: diasProcessados,
       parecerTecnico: parecerTecnico || '',
       fotos: fotosSemana.slice(0, 3)
