@@ -4,10 +4,12 @@ import admin from '../firebaseAdmin.js'
 import gerarDefesaProjeto from './gerarDefesaProjeto.js'
 import montarSemanaRelatorioMensal from './montarSemanaRelatorioMensal.js'
 import {
+  buscarOcorrenciasCalendarioPorPeriodo,
   buscarRegistrosDiariosPorPeriodo,
   buscarTextoBaseDefesaProjetoPorAno
 } from './relatorioMensalDataAccess.js'
 import { agruparPorSemanaPedagogica } from './helpers/relatorioMensalHelpers.js'
+import { OFICINA_PROGRAMACAO_ID } from './helpers/diasOficiaisOficinas.js'
 
 export async function gerarRelatorioMensal({ mes, ano }) {
   if (!mes || !ano) {
@@ -31,14 +33,26 @@ export async function gerarRelatorioMensal({ mes, ano }) {
 
   const registros = await buscarRegistrosDiariosPorPeriodo({
     timestampInicio,
-    timestampFim
+    timestampFim,
+    permitirVazio: true
   })
 
-  const textoBaseDefesa = await buscarTextoBaseDefesaProjetoPorAno({
-    ano: anoNumero
+  const ocorrenciasCalendario = await buscarOcorrenciasCalendarioPorPeriodo({
+    ano: anoNumero,
+    mes: mesNumero,
+    oficinaId: OFICINA_PROGRAMACAO_ID
   })
 
-  const semanasAgrupadas = agruparPorSemanaPedagogica(registros)
+  if (registros.length === 0 && ocorrenciasCalendario.length === 0) {
+    throw new Error('Nenhum registro diÃ¡rio encontrado para o perÃ­odo')
+  }
+
+  const semanasAgrupadas = agruparPorSemanaPedagogica(registros, {
+    ocorrencias: ocorrenciasCalendario,
+    ano: anoNumero,
+    mes: mesNumero,
+    oficinaId: OFICINA_PROGRAMACAO_ID
+  })
 
   const semanasProcessadas = []
   const resumosDoMes = []
@@ -54,10 +68,18 @@ export async function gerarRelatorioMensal({ mes, ano }) {
     semanasProcessadas.push(semanaProcessada)
   }
 
-  const defesaProjetoAplicado = await gerarDefesaProjeto(
-    textoBaseDefesa,
-    resumosDoMes.join('\n')
-  )
+  let defesaProjetoAplicado = ''
+
+  if (resumosDoMes.length > 0) {
+    const textoBaseDefesa = await buscarTextoBaseDefesaProjetoPorAno({
+      ano: anoNumero
+    })
+
+    defesaProjetoAplicado = await gerarDefesaProjeto(
+      textoBaseDefesa,
+      resumosDoMes.join('\n')
+    )
+  }
 
   return {
     cabecalho: {

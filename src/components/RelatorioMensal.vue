@@ -162,6 +162,19 @@ async function exportarDocx() {
       >
         <h2>{{ semana.identificador }} - {{ semana.periodo }}</h2>
 
+        <section
+          v-if="(semana.observacoesInstitucionais || []).length > 0"
+          class="observacoes-institucionais"
+        >
+          <p
+            v-for="(observacao, o) in semana.observacoesInstitucionais || []"
+            :key="o"
+            class="observacao-institucional"
+          >
+            {{ observacao.texto }}
+          </p>
+        </section>
+
         <article
           v-for="(dia, d) in semana.dias"
           :key="d"
@@ -205,7 +218,7 @@ async function exportarDocx() {
           </section>
         </article>
 
-        <article class="fechamento">
+        <article v-if="semana.parecerTecnico" class="fechamento">
           <h3 class="titulo-parecer">Parecer técnico do educador</h3>
           <p>{{ semana.parecerTecnico }}</p>
         </article>
@@ -328,6 +341,23 @@ async function exportarDocx() {
 
 .dia {
   margin-top: 24px;
+}
+
+.observacoes-institucionais {
+  margin-top: 18px;
+  padding: 14px 16px;
+  border-left: 4px solid #334155;
+  background: #f8fafc;
+}
+
+.observacao-institucional {
+  margin: 0;
+  color: #334155;
+  font-weight: 600;
+}
+
+.observacao-institucional + .observacao-institucional {
+  margin-top: 10px;
 }
 
 .meta-dia {
