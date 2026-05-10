@@ -1,4 +1,9 @@
 import admin, { adminDb } from '../firebaseAdmin.js'
+import {
+  ROLES,
+  isRoleCoordenadorPedagogico,
+  isRoleGestorPedagogico
+} from '../constants/roles.js'
 
 export class OcorrenciaCalendarioError extends Error {
   constructor(message, statusCode = 400) {
@@ -81,16 +86,67 @@ function validarValorConhecido({ valor, campo, permitidos }) {
   }
 }
 
+function normalizarListaTexto(lista) {
+  if (!Array.isArray(lista)) {
+    return []
+  }
+
+  return lista.map(normalizarTexto).filter(Boolean)
+}
+
+function validarOperador(operador = {}) {
+  if (!operador.uid || !operador.role) {
+    throw new OcorrenciaCalendarioError('Usuario autenticado sem vinculo institucional valido.', 403)
+  }
+
+  if (
+    ![
+      ROLES.COORDENADOR_PEDAGOGICO,
+      ROLES.GESTOR_PEDAGOGICO
+    ].includes(operador.role)
+  ) {
+    throw new OcorrenciaCalendarioError('Acesso negado para este perfil.', 403)
+  }
+}
+
+function normalizarOficinaPorEscopo({ oficinaId, escopo, operador }) {
+  if (escopo === 'institucional') {
+    if (!isRoleGestorPedagogico(operador.role)) {
+      throw new OcorrenciaCalendarioError(
+        'Apenas a gestao pedagogica pode criar ocorrencia institucional.',
+        403
+      )
+    }
+
+    return null
+  }
+
+  if (!oficinaId) {
+    throw new OcorrenciaCalendarioError('oficinaId e obrigatorio para ocorrencia de oficina.')
+  }
+
+  if (isRoleCoordenadorPedagogico(operador.role)) {
+    const oficinasResponsaveis = normalizarListaTexto(operador.oficinasResponsaveis)
+
+    if (!oficinasResponsaveis.includes(oficinaId)) {
+      throw new OcorrenciaCalendarioError(
+        'Oficina fora do escopo de responsabilidade do coordenador pedagogico.',
+        403
+      )
+    }
+  }
+
+  return oficinaId
+}
+
 function montarOcorrenciaNormalizada({ payload = {}, operador = {} }) {
-  const oficinaId = normalizarTexto(payload.oficinaId)
+  validarOperador(operador)
+
+  const oficinaIdPayload = normalizarTexto(payload.oficinaId)
   const motivoTipo = normalizarIdentificador(payload.motivoTipo)
   const descricao = normalizarTexto(payload.descricao)
   const escopo = normalizarIdentificador(payload.escopo) || 'oficina'
   const status = normalizarIdentificador(payload.status) || 'ativo'
-
-  if (!oficinaId) {
-    throw new OcorrenciaCalendarioError('oficinaId e obrigatorio.')
-  }
 
   const datasAfetadas = normalizarDatasAfetadas(payload.datasAfetadas)
 
@@ -120,6 +176,12 @@ function montarOcorrenciaNormalizada({ payload = {}, operador = {} }) {
     permitidos: STATUS_OCORRENCIA_CALENDARIO
   })
 
+  const oficinaId = normalizarOficinaPorEscopo({
+    oficinaId: oficinaIdPayload,
+    escopo,
+    operador
+  })
+
   return {
     oficinaId,
     datasAfetadas,
@@ -134,11 +196,63 @@ function montarOcorrenciaNormalizada({ payload = {}, operador = {} }) {
   }
 }
 
+async function existeOcorrenciaAtivaDuplicada({ ocorrencia, dataAfetada }) {
+  const snapshot = await adminDb
+    .collection('ocorrencias_calendario')
+    .where('datasAfetadas', 'array-contains', dataAfetada)
+    .get()
+
+  return snapshot.docs.some((doc) => {
+    const data = doc.data()
+
+    if (data.status !== 'ativo' || data.escopo !== ocorrencia.escopo) {
+      return false
+    }
+
+    if (ocorrencia.escopo === 'institucional') {
+      return true
+    }
+
+    return data.oficinaId === ocorrencia.oficinaId
+  })
+}
+
+async function validarDuplicidadeAtiva(ocorrencia) {
+  if (ocorrencia.status !== 'ativo') {
+    return
+  }
+
+  for (const dataAfetada of ocorrencia.datasAfetadas) {
+    const duplicada = await existeOcorrenciaAtivaDuplicada({
+      ocorrencia,
+      dataAfetada
+    })
+
+    if (!duplicada) {
+      continue
+    }
+
+    if (ocorrencia.escopo === 'institucional') {
+      throw new OcorrenciaCalendarioError(
+        `Ja existe ocorrencia institucional ativa para a data ${dataAfetada}.`,
+        409
+      )
+    }
+
+    throw new OcorrenciaCalendarioError(
+      `Ja existe ocorrencia ativa para esta oficina na data ${dataAfetada}.`,
+      409
+    )
+  }
+}
+
 export default async function salvarOcorrenciaCalendario({
   payload,
   operador
 }) {
   const ocorrencia = montarOcorrenciaNormalizada({ payload, operador })
+  await validarDuplicidadeAtiva(ocorrencia)
+
   const docRef = await adminDb.collection('ocorrencias_calendario').add(ocorrencia)
 
   return {
