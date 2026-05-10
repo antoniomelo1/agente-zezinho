@@ -30,6 +30,21 @@ const isGestorPedagogico = computed(() =>
   isRoleGestorPedagogico(authStore.role)
 )
 
+const isEscopoInstitucional = computed(() => escopo.value === 'institucional')
+
+const escoposDisponiveis = computed(() => {
+  if (isGestorPedagogico.value) {
+    return [
+      { valor: 'oficina', texto: 'Oficina' },
+      { valor: 'institucional', texto: 'Institucional' }
+    ]
+  }
+
+  return [
+    { valor: 'oficina', texto: 'Oficina' }
+  ]
+})
+
 const oficinasDisponiveis = computed(() => {
   if (isGestorPedagogico.value) {
     return oficinasGestor.value
@@ -78,6 +93,11 @@ function limparMensagens() {
 }
 
 function aplicarOficinaPadrao() {
+  if (isEscopoInstitucional.value) {
+    oficinaId.value = ''
+    return
+  }
+
   if (!oficinaId.value && oficinasDisponiveis.value.length === 1) {
     oficinaId.value = oficinasDisponiveis.value[0].id
   }
@@ -137,7 +157,15 @@ function removerData(dataISO) {
 }
 
 function validarFormulario() {
-  if (!oficinaId.value.trim()) {
+  if (!escopo.value) {
+    return 'Informe o escopo da ocorrência.'
+  }
+
+  if (!isGestorPedagogico.value && isEscopoInstitucional.value) {
+    return 'Apenas a gestão pedagógica pode criar ocorrência institucional.'
+  }
+
+  if (!isEscopoInstitucional.value && !oficinaId.value.trim()) {
     return 'Informe a oficina.'
   }
 
@@ -151,10 +179,6 @@ function validarFormulario() {
 
   if (!descricao.value.trim()) {
     return 'Informe uma descrição institucional.'
-  }
-
-  if (!escopo.value) {
-    return 'Informe o escopo da ocorrência.'
   }
 
   return ''
@@ -183,7 +207,7 @@ async function salvarOcorrencia() {
   try {
     const token = await obterToken()
     const payload = {
-      oficinaId: oficinaId.value.trim(),
+      oficinaId: isEscopoInstitucional.value ? null : oficinaId.value.trim(),
       datasAfetadas: datasAfetadas.value,
       motivoTipo: motivoTipo.value,
       descricao: descricao.value.trim(),
@@ -222,6 +246,16 @@ onMounted(() => {
 watch(oficinasDisponiveis, () => {
   aplicarOficinaPadrao()
 })
+
+watch(escopo, () => {
+  aplicarOficinaPadrao()
+})
+
+watch(isGestorPedagogico, (gestorPedagogico) => {
+  if (!gestorPedagogico && isEscopoInstitucional.value) {
+    escopo.value = 'oficina'
+  }
+})
 </script>
 
 <template>
@@ -237,7 +271,7 @@ watch(oficinasDisponiveis, () => {
     </header>
 
     <form class="card formulario" @submit.prevent="salvarOcorrencia">
-      <label>
+      <label v-if="!isEscopoInstitucional">
         Oficina
         <select
           v-if="oficinasDisponiveis.length > 0"
@@ -262,6 +296,15 @@ watch(oficinasDisponiveis, () => {
         />
       </label>
 
+      <label v-else>
+        Oficina
+        <input
+          type="text"
+          value="Todas as oficinas"
+          disabled
+        />
+      </label>
+
       <div class="grid">
         <label>
           Motivo
@@ -277,8 +320,13 @@ watch(oficinasDisponiveis, () => {
         <label>
           Escopo
           <select v-model="escopo" :disabled="salvando">
-            <option value="oficina">Oficina</option>
-            <option value="institucional">Institucional</option>
+            <option
+              v-for="opcao in escoposDisponiveis"
+              :key="opcao.valor"
+              :value="opcao.valor"
+            >
+              {{ opcao.texto }}
+            </option>
           </select>
         </label>
       </div>
