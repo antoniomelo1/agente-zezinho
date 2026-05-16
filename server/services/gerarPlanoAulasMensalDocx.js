@@ -159,6 +159,14 @@ export default async function gerarPlanoAulasMensalDocx(plano) {
       })
     )
 
+    const observacoesInstitucionais = semana.observacoesInstitucionais || []
+
+    observacoesInstitucionais.forEach((observacao) => {
+      if (observacao?.texto?.trim()) {
+        children.push(paragrafoInstitucional(observacao.texto.trim()))
+      }
+    })
+
     children.push(
       paragrafoInstitucional(
         `Áreas do conhecimento: ${(semana.areasConhecimento || []).join(', ')}`
