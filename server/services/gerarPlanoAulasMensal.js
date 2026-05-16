@@ -2,6 +2,7 @@ import admin, { adminDb } from '../firebaseAdmin.js'
 import fetch from 'node-fetch'
 
 import gerarCalendarioPlanoAulasMensal from './helpers/gerarCalendarioPlanoAulasMensal.js'
+import { buscarOcorrenciasCalendarioAtivasPorMes } from './ocorrenciasCalendarioDataAccess.js'
 
 function normalizarTexto(valor) {
   if (typeof valor !== 'string') {
@@ -544,9 +545,17 @@ export default async function gerarPlanoAulasMensal({
       ? modulosPrevistosNormalizados
       : modulosAnteriores.slice(0, 4)
 
+  const ocorrenciasCalendario = await buscarOcorrenciasCalendarioAtivasPorMes({
+    ano: anoNumero,
+    mes: mesNumero,
+    oficinaId: educador.oficinaId
+  })
+
   const calendario = gerarCalendarioPlanoAulasMensal({
     ano: anoNumero,
-    mes: mesNumero
+    mes: mesNumero,
+    oficinaId: educador.oficinaId,
+    ocorrencias: ocorrenciasCalendario
   })
 
   const projetoMes = montarProjetoMes(modulosPlanejamento, referenciaMesAnterior)
@@ -562,6 +571,7 @@ export default async function gerarPlanoAulasMensal({
     identificacao: semana.identificacao,
     periodo: semana.periodo,
     areasConhecimento: montarAreasConhecimento(),
+    observacoesInstitucionais: semana.observacoesInstitucionais || [],
     dias: semana.dias.map((dia) => {
       const moduloBase =
         modulosPlanejamento[indiceModulo % Math.max(modulosPlanejamento.length, 1)] ||
