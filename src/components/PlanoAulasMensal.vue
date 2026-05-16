@@ -217,6 +217,15 @@ async function exportarDocx() {
         class="bloco"
       >
         <h2>{{ semana.identificacao }} - {{ semana.periodo }}</h2>
+
+        <p
+          v-for="(observacao, indiceObservacao) in semana.observacoesInstitucionais || []"
+          :key="`${indiceSemana}-observacao-${indiceObservacao}`"
+          class="observacao-institucional"
+        >
+          {{ observacao.texto }}
+        </p>
+
         <p><strong>Áreas do conhecimento:</strong> {{ semana.areasConhecimento.join(', ') }}</p>
 
         <article
@@ -381,6 +390,12 @@ async function exportarDocx() {
   margin-top: 22px;
   padding-top: 18px;
   border-top: 1px solid #e2e8f0;
+}
+
+.observacao-institucional {
+  margin: 12px 0;
+  color: #334155;
+  font-style: italic;
 }
 
 .subbloco {
