@@ -214,7 +214,7 @@ export function agruparPorSemanaPedagogica(
     oficinaId = OFICINA_PROGRAMACAO_ID
   } = {}
 ) {
-  if (ano && mes && ocorrencias.length > 0) {
+  if (ano && mes) {
     return montarSemanasPorCalendario({
       registros,
       ocorrencias,

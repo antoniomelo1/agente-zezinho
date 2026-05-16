@@ -77,6 +77,14 @@ export default async function gerarRelatorioDocx(relatorio) {
       })
     )
 
+    const observacoesInstitucionais = semana.observacoesInstitucionais || []
+
+    observacoesInstitucionais.forEach((observacao) => {
+      if (observacao?.texto?.trim()) {
+        children.push(paragrafoInstitucional(observacao.texto.trim()))
+      }
+    })
+
     semana.dias.forEach((dia) => {
       children.push(
         new Paragraph({
@@ -158,15 +166,17 @@ export default async function gerarRelatorioDocx(relatorio) {
       )
     })
 
-    children.push(
-      new Paragraph({
-        text: 'Parecer técnico do educador',
-        heading: HeadingLevel.HEADING_3,
-        spacing: { before: 300, after: 150 }
-      })
-    )
+    if (semana.parecerTecnico?.trim()) {
+      children.push(
+        new Paragraph({
+          text: 'Parecer técnico do educador',
+          heading: HeadingLevel.HEADING_3,
+          spacing: { before: 300, after: 150 }
+        })
+      )
 
-    children.push(paragrafoInstitucional(semana.parecerTecnico))
+      children.push(paragrafoInstitucional(semana.parecerTecnico.trim()))
+    }
 
     children.push(
       new Paragraph({
