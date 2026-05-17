@@ -2,7 +2,38 @@ import admin, { adminDb } from '../firebaseAdmin.js'
 import { ROLES } from '../constants/roles.js'
 import gerarLinkPrimeiroAcesso from './gerarLinkPrimeiroAcesso.js'
 
-export default async function reenviarConviteEducador({ uid }) {
+function normalizarTexto(valor) {
+  if (valor === null || valor === undefined) {
+    return ''
+  }
+
+  return String(valor).trim()
+}
+
+function normalizarListaTextos(valor) {
+  if (!Array.isArray(valor)) {
+    return []
+  }
+
+  return valor
+    .map(normalizarTexto)
+    .filter(Boolean)
+}
+
+function podeAcessarEducador({ operador = {}, educador = {} }) {
+  if (operador.role === ROLES.GESTOR_PEDAGOGICO) {
+    return true
+  }
+
+  if (operador.role !== ROLES.COORDENADOR_PEDAGOGICO) {
+    return false
+  }
+
+  const oficinasResponsaveis = normalizarListaTextos(operador.oficinasResponsaveis)
+  return oficinasResponsaveis.includes(normalizarTexto(educador.oficinaId))
+}
+
+export default async function reenviarConviteEducador({ uid, operador }) {
   if (!uid) {
     throw new Error('Uid obrigatório para reenvio')
   }
@@ -18,6 +49,10 @@ export default async function reenviarConviteEducador({ uid }) {
 
   if (userData.role !== ROLES.EDUCADOR) {
     throw new Error('Usuário informado não é educador')
+  }
+
+  if (!podeAcessarEducador({ operador, educador: userData })) {
+    throw new Error('Este educador não pertence às oficinas sob sua responsabilidade')
   }
 
   if (userData.ativo === false) {
