@@ -202,19 +202,33 @@ async function existeOcorrenciaAtivaDuplicada({ ocorrencia, dataAfetada }) {
     .where('datasAfetadas', 'array-contains', dataAfetada)
     .get()
 
-  return snapshot.docs.some((doc) => {
+  const ocorrenciaSobreposta = snapshot.docs.find((doc) => {
     const data = doc.data()
+    const escopoExistente = data.escopo || ''
 
-    if (data.status !== 'ativo' || data.escopo !== ocorrencia.escopo) {
+    if (data.status !== 'ativo') {
       return false
     }
 
-    if (ocorrencia.escopo === 'institucional') {
+    if (escopoExistente === 'institucional') {
       return true
     }
 
-    return data.oficinaId === ocorrencia.oficinaId
+    if (ocorrencia.escopo === 'institucional') {
+      return escopoExistente === 'oficina'
+    }
+
+    return (
+      escopoExistente === 'oficina' &&
+      data.oficinaId === ocorrencia.oficinaId
+    )
   })
+
+  if (!ocorrenciaSobreposta) {
+    return null
+  }
+
+  return ocorrenciaSobreposta.data()
 }
 
 async function validarDuplicidadeAtiva(ocorrencia) {
@@ -232,9 +246,16 @@ async function validarDuplicidadeAtiva(ocorrencia) {
       continue
     }
 
-    if (ocorrencia.escopo === 'institucional') {
+    if (duplicada.escopo === 'institucional') {
       throw new OcorrenciaCalendarioError(
         `Ja existe ocorrencia institucional ativa para a data ${dataAfetada}.`,
+        409
+      )
+    }
+
+    if (ocorrencia.escopo === 'institucional') {
+      throw new OcorrenciaCalendarioError(
+        `Ja existe ocorrencia de oficina ativa para a data ${dataAfetada}.`,
         409
       )
     }
