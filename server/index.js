@@ -326,7 +326,8 @@ app.get(
       const leitura = await listarLeituraOperacionalCoordenador({
         oficinaId: req.query.oficinaId,
         educadorId: req.query.educadorId,
-        data: req.query.data
+        data: req.query.data,
+        operador: req.currentUser
       })
       res.json(leitura)
     } catch (error) {
