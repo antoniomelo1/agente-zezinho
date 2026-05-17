@@ -1,6 +1,9 @@
 import { adminDb } from '../firebaseAdmin.js'
 import { ROLES } from '../constants/roles.js'
+import { buscarOcorrenciasCalendarioAtivasPorDatas } from './ocorrenciasCalendarioDataAccess.js'
+import calcularStatusOperacionalComOcorrencias from './helpers/calcularStatusOperacionalComOcorrencias.js'
 import classificarStatusAtualizacao from './helpers/classificarStatusAtualizacao.js'
+import { listarDatasOficiaisDoMes } from './helpers/diasOficiaisOficinas.js'
 import { resolverTemaDiaDerivado } from './helpers/resolverTemaDoRegistro.js'
 
 function formatarDataLocalISO(data) {
@@ -45,6 +48,47 @@ function normalizarDataFiltro(value) {
   }
 
   return dataTexto
+}
+
+function listarMesesNoIntervalo({ inicio, fim }) {
+  const meses = []
+  const cursor = new Date(inicio.getFullYear(), inicio.getMonth(), 1)
+  const limite = new Date(fim.getFullYear(), fim.getMonth(), 1)
+
+  while (cursor <= limite) {
+    meses.push({
+      ano: cursor.getFullYear(),
+      mes: cursor.getMonth() + 1
+    })
+
+    cursor.setMonth(cursor.getMonth() + 1)
+  }
+
+  return meses
+}
+
+function listarDatasOficiaisPendentesParaBusca({
+  dataUltimoRegistro,
+  dataReferencia,
+  oficinaId
+}) {
+  if (!dataUltimoRegistro || !dataReferencia) {
+    return []
+  }
+
+  const inicio = new Date(`${dataUltimoRegistro}T00:00:00`)
+  const fim = new Date(`${dataReferencia}T00:00:00`)
+
+  if (Number.isNaN(inicio.getTime()) || Number.isNaN(fim.getTime()) || inicio >= fim) {
+    return []
+  }
+
+  return listarMesesNoIntervalo({ inicio, fim })
+    .flatMap(({ ano, mes }) =>
+      listarDatasOficiaisDoMes({ ano, mes, oficinaId })
+    )
+    .filter((dataISO) => dataISO > dataUltimoRegistro && dataISO < dataReferencia)
+    .sort()
 }
 
 function montarRegistroHistorico(doc) {
@@ -108,17 +152,28 @@ function montarLeituraEducador(educador, registroSnap) {
       totalPresentesTarde: null,
       totalPresentes: null,
       statusAtualizacao: 'sem_registro',
+      statusOriginal: 'sem_registro',
+      possuiJustificativaOperacional: false,
+      diasJustificados: [],
+      diasPendentesSemJustificativa: [],
+      ocorrenciasJustificativas: [],
+      motivoStatus: '',
       temRegistro: false
     }
   }
 
   const dadosRegistro = registroSnap.data()
   const dataUltimoRegistro = normalizarDataISO(dadosRegistro.data)
+  const oficinaId = dadosRegistro.oficinaId || educador.oficinaId || ''
+  const statusAtualizacao = classificarStatusAtualizacao(
+    dataUltimoRegistro,
+    oficinaId
+  )
 
   return {
     uidEducador: educador.uid,
     nomeEducador: dadosRegistro.nomeEducador || educador.nome,
-    oficinaId: dadosRegistro.oficinaId || educador.oficinaId || '',
+    oficinaId,
     dataUltimoRegistro,
     temaDia: resolverTemaDiaDerivado(dadosRegistro),
     modulo: dadosRegistro.modulo || '',
@@ -126,15 +181,49 @@ function montarLeituraEducador(educador, registroSnap) {
     totalPresentesManha: dadosRegistro.totalPresentesManha ?? null,
     totalPresentesTarde: dadosRegistro.totalPresentesTarde ?? null,
     totalPresentes: dadosRegistro.totalPresentes ?? null,
-    statusAtualizacao: classificarStatusAtualizacao(
-      dataUltimoRegistro,
-      dadosRegistro.oficinaId || educador.oficinaId || ''
-    ),
+    statusAtualizacao,
+    statusOriginal: statusAtualizacao,
+    possuiJustificativaOperacional: false,
+    diasJustificados: [],
+    diasPendentesSemJustificativa: [],
+    ocorrenciasJustificativas: [],
+    motivoStatus: '',
     temRegistro: true
   }
 }
 
-function consolidarOficinas(leituraEducadores) {
+async function aplicarJustificativasOperacionais(item, dataReferencia) {
+  const datasOficiaisPendentes = listarDatasOficiaisPendentesParaBusca({
+    dataUltimoRegistro: item.dataUltimoRegistro,
+    dataReferencia,
+    oficinaId: item.oficinaId
+  })
+
+  if (datasOficiaisPendentes.length === 0) {
+    return {
+      ...item,
+      diasPendentesSemJustificativa: []
+    }
+  }
+
+  const ocorrencias = await buscarOcorrenciasCalendarioAtivasPorDatas({
+    datasOficiais: datasOficiaisPendentes,
+    oficinaId: item.oficinaId
+  })
+  const statusComOcorrencias = calcularStatusOperacionalComOcorrencias({
+    dataUltimoRegistro: item.dataUltimoRegistro,
+    oficinaId: item.oficinaId,
+    dataReferencia,
+    ocorrencias
+  })
+
+  return {
+    ...item,
+    ...statusComOcorrencias
+  }
+}
+
+async function consolidarOficinas(leituraEducadores, dataReferencia) {
   const oficinasMap = new Map()
 
   for (const educador of leituraEducadores) {
@@ -169,15 +258,30 @@ function consolidarOficinas(leituraEducadores) {
 
   }
 
-  return Array.from(oficinasMap.values())
-    .map((oficina) => ({
-      ...oficina,
-      statusAtualizacao: classificarStatusAtualizacao(
+  const oficinas = await Promise.all(
+    Array.from(oficinasMap.values()).map((oficina) => {
+      const statusAtualizacao = classificarStatusAtualizacao(
         oficina.dataUltimoRegistro,
         oficina.oficinaId
       )
-    }))
-    .sort((a, b) => a.oficinaId.localeCompare(b.oficinaId, 'pt-BR'))
+
+      return aplicarJustificativasOperacionais(
+        {
+          ...oficina,
+          statusAtualizacao,
+          statusOriginal: statusAtualizacao,
+          possuiJustificativaOperacional: false,
+          diasJustificados: [],
+          diasPendentesSemJustificativa: [],
+          ocorrenciasJustificativas: [],
+          motivoStatus: ''
+        },
+        dataReferencia
+      )
+    })
+  )
+
+  return oficinas.sort((a, b) => a.oficinaId.localeCompare(b.oficinaId, 'pt-BR'))
 }
 
 export default async function listarLeituraOperacionalCoordenador(filtros = {}) {
@@ -185,6 +289,7 @@ export default async function listarLeituraOperacionalCoordenador(filtros = {}) 
   const educadorIdFiltro = normalizarTexto(filtros.educadorId)
   const dataFiltro = normalizarDataFiltro(filtros.data)
   const detalharHistorico = Boolean(oficinaIdFiltro && educadorIdFiltro)
+  const dataReferencia = formatarDataLocalISO(new Date())
 
   const educadoresSnapshot = await adminDb
     .collection('usuarios')
@@ -216,13 +321,18 @@ export default async function listarLeituraOperacionalCoordenador(filtros = {}) 
     )
   )
 
-  const leituraEducadores = educadores.map((educador, index) =>
+  const leituraEducadoresBase = educadores.map((educador, index) =>
     montarLeituraEducador(educador, registrosRecentes[index].docs[0] || null)
+  )
+  const leituraEducadores = await Promise.all(
+    leituraEducadoresBase.map((educador) =>
+      aplicarJustificativasOperacionais(educador, dataReferencia)
+    )
   )
 
   const resposta = {
     geradoEm: new Date().toISOString(),
-    oficinas: consolidarOficinas(leituraEducadores),
+    oficinas: await consolidarOficinas(leituraEducadores, dataReferencia),
     educadores: leituraEducadores
   }
 

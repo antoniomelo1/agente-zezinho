@@ -37,6 +37,16 @@ export async function buscarOcorrenciasCalendarioAtivasPorMes({
   oficinaId = OFICINA_PROGRAMACAO_ID
 }) {
   const datasOficiais = listarDatasOficiaisDoMes({ ano, mes, oficinaId })
+  return buscarOcorrenciasCalendarioAtivasPorDatas({
+    datasOficiais,
+    oficinaId
+  })
+}
+
+export async function buscarOcorrenciasCalendarioAtivasPorDatas({
+  datasOficiais,
+  oficinaId = OFICINA_PROGRAMACAO_ID
+}) {
   const datasOficiaisSet = new Set(datasOficiais)
   const ocorrenciasPorId = new Map()
 
