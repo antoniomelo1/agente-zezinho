@@ -1,11 +1,9 @@
+import { obterDiasOficiaisOficina } from './diasOficiaisOficinas.js'
+
 function normalizarParaInicioDoDia(data) {
   const dataNormalizada = new Date(data)
   dataNormalizada.setHours(0, 0, 0, 0)
   return dataNormalizada
-}
-
-const DIAS_LETIVOS_POR_OFICINA = {
-  programacao: [2, 3, 4]
 }
 
 function normalizarOficinaId(oficinaId) {
@@ -44,7 +42,7 @@ export default function classificarStatusAtualizacao(dataUltimoRegistro, oficina
   const hoje = normalizarParaInicioDoDia(new Date())
   const dataRegistro = normalizarParaInicioDoDia(new Date(`${dataUltimoRegistro}T00:00:00`))
   const oficinaNormalizada = normalizarOficinaId(oficinaId)
-  const diasLetivosEsperados = DIAS_LETIVOS_POR_OFICINA[oficinaNormalizada]
+  const diasLetivosEsperados = obterDiasOficiaisOficina(oficinaNormalizada)
 
   if (Array.isArray(diasLetivosEsperados) && diasLetivosEsperados.length > 0) {
     const diasLetivosSemRegistro = contarDiasLetivosEsperadosSemRegistro({
