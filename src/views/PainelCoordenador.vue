@@ -185,6 +185,18 @@ function textoStatusAtualizacao(status) {
   return 'Sem registro'
 }
 
+function textoJustificativaOperacional(item) {
+  if (!item?.possuiJustificativaOperacional) {
+    return ''
+  }
+
+  if (item.motivoStatus) {
+    return item.motivoStatus
+  }
+
+  return 'Ausência justificada por ocorrência de calendário.'
+}
+
 function textoOficina(oficinaId) {
   if (!oficinaId) {
     return 'Não informada'
@@ -510,6 +522,13 @@ onMounted(() => {
                 {{ textoStatusAtualizacao(oficina.statusAtualizacao) }}
               </span>
             </div>
+
+            <p
+              v-if="textoJustificativaOperacional(oficina)"
+              class="justificativa-operacional"
+            >
+              {{ textoJustificativaOperacional(oficina) }}
+            </p>
 
             <div class="resumo-metricas">
               <p><span>Última atualização</span><strong>{{ formatarDataRegistro(oficina.dataUltimoRegistro) }}</strong></p>
@@ -1165,6 +1184,19 @@ button:hover:not(:disabled) {
   font-size: 0.82rem;
   line-height: 1.25;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.justificativa-operacional {
+  margin: -8px 0 0;
+  color: #cbd5e1;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.justificativa-operacional-tabela {
+  display: block;
+  margin: 6px 0 0;
+  font-weight: 500;
 }
 
 .status-ativo {
