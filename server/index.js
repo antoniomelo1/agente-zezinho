@@ -25,6 +25,9 @@ import ativarEducadorAposRedefinicao from './services/ativarEducadorAposRedefini
 import reenviarConviteEducador from './services/reenviarConviteEducador.js'
 import listarEducadores from './services/listarEducadores.js'
 import salvarRegistroDiario from './services/salvarRegistroDiario.js'
+import salvarPlanoAnual, {
+  PlanoAnualError
+} from './services/salvarPlanoAnual.js'
 import salvarOcorrenciaCalendario, {
   OcorrenciaCalendarioError
 } from './services/salvarOcorrenciaCalendario.js'
@@ -370,6 +373,34 @@ app.post(
       }
 
       res.status(500).json({ erro: 'Erro ao salvar ocorrencia de calendario' })
+    }
+  }
+)
+
+app.put(
+  '/plano-anual/:ano',
+  requireAuth,
+  requireRole([ROLES.COORDENADOR_PEDAGOGICO, ROLES.GESTOR_PEDAGOGICO]),
+  async (req, res) => {
+    try {
+      const plano = await salvarPlanoAnual({
+        ano: req.params.ano,
+        payload: req.body,
+        operador: req.currentUser
+      })
+
+      res.json({
+        mensagem: 'Plano anual salvo com sucesso',
+        plano
+      })
+    } catch (error) {
+      console.error(error)
+
+      if (error instanceof PlanoAnualError) {
+        return res.status(error.statusCode).json({ erro: error.publicMessage })
+      }
+
+      res.status(500).json({ erro: 'Erro ao salvar plano anual' })
     }
   }
 )

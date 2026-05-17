@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { doc, getDoc, setDoc, Timestamp } from 'firebase/firestore'
-import { db } from '../firebase/firebase'
+import { doc, getDoc } from 'firebase/firestore'
+import { auth, db } from '../firebase/firebase'
 import { useAuthStore } from '../stores/authStore'
 import { isRoleCoordenacaoPedagogica } from '../constants/roles'
 
@@ -10,6 +10,7 @@ const carregando = ref(false)
 const jaExiste = ref(false)
 
 const ANO_PLANO = '2026'
+const API_URL = import.meta.env.VITE_API_URL
 const authStore = useAuthStore()
 const isCoordenador = computed(() => isRoleCoordenacaoPedagogica(authStore.role))
 
@@ -29,24 +30,39 @@ async function salvarPlano() {
     return
   }
 
+  const usuario = auth.currentUser
+
+  if (!usuario) {
+    alert('Usuário não autenticado.')
+    return
+  }
+
   carregando.value = true
 
   try {
-    await setDoc(
-      doc(db, 'plano_anual', ANO_PLANO),
-      {
-        ano: Number(ANO_PLANO),
-        defesaProjetoAplicado: textoPlano.value,
-        atualizadoEm: Timestamp.now()
+    const token = await usuario.getIdToken()
+    const response = await fetch(`${API_URL}/plano-anual/${ANO_PLANO}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
       },
-      { merge: true }
-    )
+      body: JSON.stringify({
+        defesaProjetoAplicado: textoPlano.value
+      })
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.erro || 'Erro ao salvar o plano anual.')
+    }
 
     jaExiste.value = true
-    alert('Plano anual salvo com sucesso.')
+    alert(data.mensagem || 'Plano anual salvo com sucesso.')
   } catch (error) {
     console.error(error)
-    alert('Erro ao salvar o plano anual.')
+    alert(error.message || 'Erro ao salvar o plano anual.')
   } finally {
     carregando.value = false
   }
