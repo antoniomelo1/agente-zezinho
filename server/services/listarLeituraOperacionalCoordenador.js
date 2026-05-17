@@ -50,6 +50,45 @@ function normalizarDataFiltro(value) {
   return dataTexto
 }
 
+function respostaVazia({ detalharHistorico }) {
+  return {
+    geradoEm: new Date().toISOString(),
+    oficinas: [],
+    educadores: [],
+    ...(detalharHistorico ? { historicoRegistros: [] } : {})
+  }
+}
+
+function normalizarListaTextos(value) {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value
+    .map(normalizarTexto)
+    .filter(Boolean)
+}
+
+function resolverOficinasPermitidas(operador = {}) {
+  if (operador.role === ROLES.GESTOR_PEDAGOGICO) {
+    return null
+  }
+
+  if (operador.role !== ROLES.COORDENADOR_PEDAGOGICO) {
+    return []
+  }
+
+  return normalizarListaTextos(operador.oficinasResponsaveis)
+}
+
+function oficinaEstaPermitida(oficinaId, oficinasPermitidas) {
+  if (oficinasPermitidas === null) {
+    return true
+  }
+
+  return oficinasPermitidas.includes(normalizarTexto(oficinaId))
+}
+
 function listarMesesNoIntervalo({ inicio, fim }) {
   const meses = []
   const cursor = new Date(inicio.getFullYear(), inicio.getMonth(), 1)
@@ -290,6 +329,21 @@ export default async function listarLeituraOperacionalCoordenador(filtros = {}) 
   const dataFiltro = normalizarDataFiltro(filtros.data)
   const detalharHistorico = Boolean(oficinaIdFiltro && educadorIdFiltro)
   const dataReferencia = formatarDataLocalISO(new Date())
+  const oficinasPermitidas = resolverOficinasPermitidas(filtros.operador)
+
+  if (
+    Array.isArray(oficinasPermitidas) &&
+    oficinasPermitidas.length === 0
+  ) {
+    return respostaVazia({ detalharHistorico })
+  }
+
+  if (
+    oficinaIdFiltro &&
+    !oficinaEstaPermitida(oficinaIdFiltro, oficinasPermitidas)
+  ) {
+    return respostaVazia({ detalharHistorico })
+  }
 
   const educadoresSnapshot = await adminDb
     .collection('usuarios')
@@ -307,7 +361,28 @@ export default async function listarLeituraOperacionalCoordenador(filtros = {}) 
         oficinaId: data.oficinaId || ''
       }
     })
+    .filter((educador) =>
+      oficinaEstaPermitida(educador.oficinaId, oficinasPermitidas)
+    )
     .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+
+  if (
+    educadorIdFiltro &&
+    !educadores.some((educador) => educador.uid === educadorIdFiltro)
+  ) {
+    return respostaVazia({ detalharHistorico })
+  }
+
+  if (
+    detalharHistorico &&
+    !educadores.some(
+      (educador) =>
+        educador.uid === educadorIdFiltro &&
+        educador.oficinaId === oficinaIdFiltro
+    )
+  ) {
+    return respostaVazia({ detalharHistorico })
+  }
 
   const registrosRecentes = await Promise.all(
     educadores.map((educador) =>
