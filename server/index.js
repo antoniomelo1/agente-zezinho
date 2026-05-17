@@ -106,7 +106,9 @@ app.get(
   requireRole(ROLES_COORDENACAO_PEDAGOGICA),
   async (req, res) => {
     try {
-      const educadores = await listarEducadores()
+      const educadores = await listarEducadores({
+        operador: req.currentUser
+      })
 
       res.json({ educadores })
     } catch (error) {
@@ -288,7 +290,8 @@ app.post(
   async (req, res) => {
     try {
       const resultado = await reenviarConviteEducador({
-        uid: req.params.uid
+        uid: req.params.uid,
+        operador: req.currentUser
       })
 
       res.json({
@@ -310,6 +313,13 @@ app.post(
 
       if (error.message === 'Uid obrigatório para reenvio') {
         return res.status(400).json({ erro: error.message })
+      }
+
+      if (
+        error.message ===
+        'Este educador não pertence às oficinas sob sua responsabilidade'
+      ) {
+        return res.status(403).json({ erro: error.message })
       }
 
       res.status(500).json({ erro: 'Erro ao reenviar convite' })
