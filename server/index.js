@@ -20,7 +20,9 @@ import {
   listarDocumentosBasePlanoMensal,
   salvarDocumentoBasePlanoMensal
 } from './services/documentoBasePlanoMensal.js'
-import criarEducadorInstitucional from './services/criarEducadorInstitucional.js'
+import criarEducadorInstitucional, {
+  CriarEducadorInstitucionalError
+} from './services/criarEducadorInstitucional.js'
 import ativarEducadorAposRedefinicao from './services/ativarEducadorAposRedefinicao.js'
 import reenviarConviteEducador from './services/reenviarConviteEducador.js'
 import listarEducadores from './services/listarEducadores.js'
@@ -80,7 +82,8 @@ app.post(
         nome,
         email,
         oficinaId,
-        criadoPorUid: req.currentUser.uid
+        criadoPorUid: req.currentUser.uid,
+        operador: req.currentUser
       })
 
       res.status(201).json({
@@ -94,8 +97,8 @@ app.post(
         return res.status(409).json({ erro: 'E-mail já cadastrado' })
       }
 
-      if (error.message === 'Nome, e-mail e oficinaId são obrigatórios') {
-        return res.status(400).json({ erro: error.message })
+      if (error instanceof CriarEducadorInstitucionalError) {
+        return res.status(error.statusCode).json({ erro: error.publicMessage })
       }
 
       res.status(500).json({ erro: 'Erro ao criar educador' })
