@@ -98,19 +98,14 @@ function validarUsuarioDocumentoBase(usuario = {}) {
 }
 
 function obterEscopoOficinasCoordenador(usuario = {}) {
-  const oficinasResponsaveis = normalizarListaTexto(usuario.oficinasResponsaveis)
+  return normalizarListaTexto(usuario.oficinasResponsaveis)
+}
 
-  if (oficinasResponsaveis.length > 0) {
-    return oficinasResponsaveis
-  }
-
-  const oficinaUnica = normalizarTexto(usuario.oficinaId)
-
-  if (oficinaUnica) {
-    return [oficinaUnica]
-  }
-
-  return []
+function coordenadorPedagogicoSemEscopo(usuario = {}) {
+  return (
+    usuario.role === ROLES.COORDENADOR_PEDAGOGICO &&
+    obterEscopoOficinasCoordenador(usuario).length === 0
+  )
 }
 
 function documentoEstaNoEscopo(usuario = {}, oficinaIdDocumento = '') {
@@ -126,7 +121,7 @@ function documentoEstaNoEscopo(usuario = {}, oficinaIdDocumento = '') {
     const escopo = obterEscopoOficinasCoordenador(usuario)
 
     if (escopo.length === 0) {
-      return true
+      return false
     }
 
     return escopo.includes(normalizarTexto(oficinaIdDocumento))
@@ -154,6 +149,10 @@ function validarPermissaoGovernancaDocumentoBase(usuario = {}) {
     throw new Error(
       'Somente a coordenação pode ativar ou desativar a versão do Documento Base do Plano Mensal.'
     )
+  }
+
+  if (coordenadorPedagogicoSemEscopo(usuario)) {
+    throw new Error('Documento base fora do escopo institucional da coordenaÃ§Ã£o')
   }
 
   return usuario
@@ -221,6 +220,10 @@ export async function listarDocumentosBasePlanoMensal({
 
   if (usuario.role === ROLES.EDUCADOR) {
     oficinaIdFiltro = normalizarTexto(usuario.oficinaId)
+  }
+
+  if (coordenadorPedagogicoSemEscopo(usuario)) {
+    throw new Error('Documento base fora do escopo institucional da coordenaÃ§Ã£o')
   }
 
   if (isRoleCoordenacaoPedagogica(usuario.role) && !isRoleGestorPedagogico(usuario.role) && oficinaIdFiltro) {
