@@ -45,6 +45,18 @@ function normalizarTipoAula(valor) {
     : tipoNormalizado
 }
 
+function resolverOficinaIdEducador(educador = {}) {
+  const oficinaId = normalizarTexto(educador.oficinaId)
+
+  if (!oficinaId) {
+    const error = new Error('Educador sem oficina vinculada não pode registrar aula.')
+    error.statusCode = 403
+    throw error
+  }
+
+  return oficinaId
+}
+
 function validarPayload(payload = {}) {
   const temaDia = normalizarTexto(payload.temaDia)
   const temaDiaManha = normalizarTexto(payload.temaDiaManha)
@@ -114,6 +126,7 @@ export default async function salvarRegistroDiario({
 }) {
   validarPayload(payload)
 
+  const oficinaId = resolverOficinaIdEducador(educador)
   const dataConvertida = converterData(payload.data)
   const resumoManha = normalizarTexto(payload.resumoManha)
   const resumoTarde = normalizarTexto(payload.resumoTarde)
@@ -145,7 +158,7 @@ export default async function salvarRegistroDiario({
     mes: dataConvertida.getMonth() + 1,
     uidEducador: educador.uid,
     nomeEducador: educador.nome || null,
-    oficinaId: educador.oficinaId || null,
+    oficinaId,
     modulo: normalizarTexto(payload.modulo),
     tipoAula: normalizarTipoAula(payload.tipoAula),
     temaDia,
