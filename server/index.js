@@ -464,6 +464,10 @@ app.post(
     } catch (error) {
       console.error(error)
 
+      if (error.statusCode) {
+        return res.status(error.statusCode).json({ erro: error.message })
+      }
+
       if (
         error.message === 'Data obrigatória' ||
         error.message === 'Data inválida' ||

@@ -120,6 +120,32 @@ function normalizarTotalPresentesLegado({
   return null
 }
 
+async function verificarRegistroDuplicado({
+  uidEducador,
+  oficinaId,
+  dataConvertida
+}) {
+  const inicioDia = dataConvertida
+  const inicioDiaSeguinte = new Date(inicioDia)
+  inicioDiaSeguinte.setDate(inicioDiaSeguinte.getDate() + 1)
+
+  const snapshot = await adminDb
+    .collection('registros_diarios')
+    .where('uidEducador', '==', uidEducador)
+    .where('oficinaId', '==', oficinaId)
+    .where('excluido', '==', false)
+    .where('data', '>=', admin.firestore.Timestamp.fromDate(inicioDia))
+    .where('data', '<', admin.firestore.Timestamp.fromDate(inicioDiaSeguinte))
+    .limit(1)
+    .get()
+
+  if (!snapshot.empty) {
+    const error = new Error('Já existe um Registro Diário para esta oficina nesta data.')
+    error.statusCode = 409
+    throw error
+  }
+}
+
 export default async function salvarRegistroDiario({
   payload,
   educador
@@ -128,6 +154,11 @@ export default async function salvarRegistroDiario({
 
   const oficinaId = resolverOficinaIdEducador(educador)
   const dataConvertida = converterData(payload.data)
+  await verificarRegistroDuplicado({
+    uidEducador: educador.uid,
+    oficinaId,
+    dataConvertida
+  })
   const resumoManha = normalizarTexto(payload.resumoManha)
   const resumoTarde = normalizarTexto(payload.resumoTarde)
   const observacoes = normalizarTexto(payload.observacoes)
