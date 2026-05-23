@@ -27,6 +27,9 @@ import ativarEducadorAposRedefinicao from './services/ativarEducadorAposRedefini
 import reenviarConviteEducador from './services/reenviarConviteEducador.js'
 import listarEducadores from './services/listarEducadores.js'
 import salvarRegistroDiario from './services/salvarRegistroDiario.js'
+import excluirRegistroDiario, {
+  ExcluirRegistroDiarioError
+} from './services/excluirRegistroDiario.js'
 import salvarPlanoAnual, {
   PlanoAnualError
 } from './services/salvarPlanoAnual.js'
@@ -478,6 +481,34 @@ app.post(
       }
 
       res.status(500).json({ erro: 'Erro ao salvar registro diário' })
+    }
+  }
+)
+
+app.patch(
+  '/registros-diarios/:id/excluir',
+  requireAuth,
+  requireRole(ROLES_COORDENACAO_PEDAGOGICA),
+  async (req, res) => {
+    try {
+      const resultado = await excluirRegistroDiario({
+        registroId: req.params.id,
+        motivoExclusao: req.body?.motivoExclusao,
+        operador: req.currentUser
+      })
+
+      res.json({
+        mensagem: 'Registro Diário excluído logicamente com sucesso',
+        ...resultado
+      })
+    } catch (error) {
+      console.error(error)
+
+      if (error instanceof ExcluirRegistroDiarioError) {
+        return res.status(error.statusCode).json({ erro: error.publicMessage })
+      }
+
+      res.status(500).json({ erro: 'Erro ao excluir Registro Diário' })
     }
   }
 )
