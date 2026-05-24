@@ -1,15 +1,23 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { auth } from '../firebase/firebase.js'
+import { useAuthStore } from '../stores/authStore'
+import { isRoleCoordenacaoPedagogica } from '../constants/roles'
 
 const API_URL = import.meta.env.VITE_API_URL
+const authStore = useAuthStore()
 
 const carregandoEducadores = ref(false)
 const carregandoLeituraOperacional = ref(false)
 const reenviando = ref(false)
+const invalidandoRegistro = ref(false)
 const erro = ref('')
 const erroLeituraOperacional = ref('')
 const sucesso = ref('')
+const sucessoInvalidacao = ref('')
+const erroInvalidacao = ref('')
+const registroParaInvalidar = ref(null)
+const motivoInvalidacao = ref('')
 const linkPrimeiroAcesso = ref('')
 const educadores = ref([])
 const leituraOperacional = ref({
@@ -148,6 +156,144 @@ async function reenviarConvite(uid) {
   }
 }
 
+function abrirInvalidacaoRegistro(registro) {
+  erroInvalidacao.value = ''
+  sucessoInvalidacao.value = ''
+  motivoInvalidacao.value = ''
+  registroParaInvalidar.value = registro
+}
+
+function cancelarInvalidacaoRegistro() {
+  if (invalidandoRegistro.value) {
+    return
+  }
+
+  erroInvalidacao.value = ''
+  motivoInvalidacao.value = ''
+  registroParaInvalidar.value = null
+}
+
+function normalizarTextoValidacao(texto) {
+  return texto
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+}
+
+function possuiPadraoRepetido(texto) {
+  if (texto.length < 12) {
+    return false
+  }
+
+  for (let tamanho = 2; tamanho <= Math.floor(texto.length / 2); tamanho += 1) {
+    if (texto.length % tamanho !== 0) {
+      continue
+    }
+
+    const padrao = texto.slice(0, tamanho)
+
+    if (padrao.repeat(texto.length / tamanho) === texto) {
+      return true
+    }
+  }
+
+  return false
+}
+
+function validarMotivoInvalidacao(motivoOriginal) {
+  const motivo = motivoOriginal.trim()
+
+  if (motivo.length < 20) {
+    return 'Informe um motivo institucional com pelo menos 20 caracteres.'
+  }
+
+  const palavras = motivo
+    .split(/\s+/)
+    .map((palavra) => normalizarTextoValidacao(palavra).replace(/[^a-z0-9]/g, ''))
+    .filter(Boolean)
+
+  if (palavras.length < 3) {
+    return 'Descreva o motivo com pelo menos 3 palavras.'
+  }
+
+  const textoNormalizado = normalizarTextoValidacao(motivo).replace(/[^a-z0-9]/g, '')
+  const caracteresUnicos = new Set(textoNormalizado).size
+  const palavrasUnicas = new Set(palavras).size
+  const temCaractereRepetido = /(.)\1{7,}/.test(textoNormalizado)
+  const temBaixaVariedade =
+    textoNormalizado.length >= 20 && caracteresUnicos / textoNormalizado.length < 0.28
+  const temPalavraRepetida = palavras.length >= 3 && palavrasUnicas / palavras.length < 0.5
+
+  if (
+    temCaractereRepetido ||
+    temBaixaVariedade ||
+    temPalavraRepetida ||
+    possuiPadraoRepetido(textoNormalizado)
+  ) {
+    return 'O motivo informado não parece descrever uma justificativa válida.'
+  }
+
+  return ''
+}
+
+function fecharAvisoInvalidacao() {
+  sucessoInvalidacao.value = ''
+}
+
+async function confirmarInvalidacaoRegistro() {
+  const motivo = motivoInvalidacao.value.trim()
+  const registroId = registroParaInvalidar.value?.id
+
+  erroInvalidacao.value = ''
+  sucessoInvalidacao.value = ''
+
+  if (!registroId) {
+    erroInvalidacao.value = 'Registro Diário não identificado para invalidação.'
+    return
+  }
+
+  const erroMotivo = validarMotivoInvalidacao(motivo)
+
+  if (erroMotivo) {
+    erroInvalidacao.value = erroMotivo
+    return
+  }
+
+  invalidandoRegistro.value = true
+
+  try {
+    const token = await obterToken()
+    const mensagemErroPadrao = 'Não foi possível invalidar o Registro Diário.'
+
+    const response = await fetch(`${API_URL}/registros-diarios/${registroId}/excluir`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        motivoExclusao: motivo
+      })
+    })
+
+    const data = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      erroInvalidacao.value = data.erro || mensagemErroPadrao
+      return
+    }
+
+    sucessoInvalidacao.value = 'Registro Diário invalidado institucionalmente com sucesso.'
+    registroParaInvalidar.value = null
+    motivoInvalidacao.value = ''
+    await carregarLeituraOperacional()
+  } catch {
+    erroInvalidacao.value = 'Não foi possível invalidar o Registro Diário.'
+  } finally {
+    invalidandoRegistro.value = false
+  }
+}
+
 function textoStatus(educador) {
   if (educador.ativo === true && educador.status === 'ativo') {
     return 'Ativo'
@@ -267,6 +413,19 @@ const educadoresDisponiveis = computed(() => {
 
 const isDetalhamentoAtivo = computed(
   () => Boolean(selectedOficinaId.value && selectedEducadorId.value)
+)
+
+const isConsultaRegistroEspecificoAtiva = computed(
+  () =>
+    Boolean(
+      selectedOficinaId.value &&
+      selectedEducadorId.value &&
+      selectedData.value
+    )
+)
+
+const podeInvalidarRegistro = computed(() =>
+  isRoleCoordenacaoPedagogica(authStore.role)
 )
 
 const oficinasFiltradas = computed(() => {
@@ -615,7 +774,20 @@ onMounted(() => {
             }}
           </p>
 
-          <div v-else class="historico-lista">
+          <p
+            v-if="
+              leituraOperacional.historicoRegistros.length > 0 &&
+              !isConsultaRegistroEspecificoAtiva
+            "
+            class="orientacao-institucional"
+          >
+            Selecione uma data específica para habilitar ações corretivas institucionais.
+          </p>
+
+          <div
+            v-if="leituraOperacional.historicoRegistros.length > 0"
+            class="historico-lista"
+          >
             <article
               v-for="registro in leituraOperacional.historicoRegistros"
               :key="registro.id"
@@ -632,11 +804,108 @@ onMounted(() => {
               <p><span>Módulo</span><strong>{{ textoCampo(registro.modulo) }}</strong></p>
               <p><span>Presentes</span><strong>{{ textoPresencaPorPeriodo(registro) }}</strong></p>
               <p><span>Resumo</span><strong>{{ textoResumos(registro) }}</strong></p>
+
+              <div
+                v-if="
+                  podeInvalidarRegistro &&
+                  isConsultaRegistroEspecificoAtiva &&
+                  registro.id &&
+                  registro.excluido !== true
+                "
+                class="historico-acoes"
+              >
+                <button
+                  type="button"
+                  class="acao-invalidar"
+                  @click="abrirInvalidacaoRegistro(registro)"
+                >
+                  Invalidar registro
+                </button>
+              </div>
             </article>
           </div>
         </section>
       </template>
     </section>
+
+    <div
+      v-if="registroParaInvalidar"
+      class="modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="titulo-invalidacao-registro"
+    >
+      <section class="modal-invalidacao">
+        <div class="modal-cabecalho">
+          <h3 id="titulo-invalidacao-registro">Invalidar Registro Diário</h3>
+          <p>
+            Esta ação mantém o documento preservado no histórico institucional, mas o
+            registro deixará de ser considerado válido para leitura operacional e relatórios.
+          </p>
+        </div>
+
+        <label class="campo-invalidacao">
+          <span>Motivo da invalidação</span>
+          <textarea
+            v-model="motivoInvalidacao"
+            :disabled="invalidandoRegistro"
+            placeholder="Descreva objetivamente o motivo institucional da invalidação."
+            rows="5"
+          ></textarea>
+        </label>
+
+        <p v-if="!motivoInvalidacao.trim()" class="orientacao-institucional">
+          Informe um motivo institucional com pelo menos 20 caracteres.
+        </p>
+
+        <p v-if="erroInvalidacao" class="erro erro-invalidacao">
+          {{ erroInvalidacao }}
+        </p>
+
+        <div class="modal-acoes">
+          <button
+            type="button"
+            class="secundario"
+            :disabled="invalidandoRegistro"
+            @click="cancelarInvalidacaoRegistro"
+          >
+            Manter registro válido
+          </button>
+          <button
+            type="button"
+            class="acao-confirmar-invalidacao"
+            :disabled="invalidandoRegistro || !motivoInvalidacao.trim()"
+            @click="confirmarInvalidacaoRegistro"
+          >
+            {{ invalidandoRegistro ? 'Invalidando...' : 'Confirmar invalidação' }}
+          </button>
+        </div>
+      </section>
+    </div>
+
+    <div
+      v-if="sucessoInvalidacao"
+      class="modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="titulo-sucesso-invalidacao"
+    >
+      <section class="modal-invalidacao modal-sucesso-invalidacao">
+        <div class="modal-cabecalho">
+          <h3 id="titulo-sucesso-invalidacao">Ação corretiva registrada</h3>
+          <p>{{ sucessoInvalidacao }}</p>
+        </div>
+
+        <div class="modal-acoes">
+          <button
+            type="button"
+            @click="fecharAvisoInvalidacao"
+          >
+            Entendi
+          </button>
+        </div>
+      </section>
+    </div>
   </div>
 </template>
 
@@ -841,6 +1110,13 @@ onMounted(() => {
   color: #cbd5e1;
 }
 
+.orientacao-institucional {
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
 input,
 select,
 textarea {
@@ -972,6 +1248,100 @@ button:hover:not(:disabled) {
 
 .historico-tipo {
   color: #cbd5e1;
+}
+
+.historico-acoes {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 4px;
+}
+
+.acao-invalidar,
+.acao-confirmar-invalidacao {
+  background: rgba(127, 29, 29, 0.78);
+  border-color: rgba(248, 113, 113, 0.38);
+}
+
+.acao-invalidar:hover:not(:disabled),
+.acao-confirmar-invalidacao:hover:not(:disabled) {
+  background: rgba(153, 27, 27, 0.92);
+  border-color: rgba(248, 113, 113, 0.65);
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  padding: 24px;
+  overflow-y: auto;
+  background: rgba(2, 6, 23, 0.76);
+  backdrop-filter: blur(8px);
+}
+
+.modal-invalidacao {
+  width: min(560px, 100%);
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 24px;
+  border-radius: 20px;
+  border: 1px solid rgba(248, 113, 113, 0.24);
+  background: #0f172a;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.42);
+}
+
+.modal-sucesso-invalidacao {
+  width: min(460px, 100%);
+}
+
+.modal-cabecalho {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.modal-cabecalho h3 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 1.2rem;
+}
+
+.modal-cabecalho p {
+  margin: 0;
+  color: #cbd5e1;
+  line-height: 1.6;
+}
+
+.campo-invalidacao {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.campo-invalidacao span {
+  color: #e2e8f0;
+  font-weight: 700;
+}
+
+.campo-invalidacao textarea {
+  min-height: 140px;
+}
+
+.erro-invalidacao {
+  margin: -4px 0 0;
+}
+
+.modal-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px;
 }
 
 .card-resumo-oficina {
@@ -1354,6 +1724,20 @@ button:hover:not(:disabled) {
 
   .celula-acoes button {
     width: auto;
+  }
+
+  .historico-acoes,
+  .historico-acoes button,
+  .modal-acoes button {
+    width: 100%;
+  }
+
+  .modal-invalidacao {
+    padding: 20px;
+  }
+
+  .modal-acoes {
+    flex-direction: column-reverse;
   }
 }
 </style>
