@@ -30,7 +30,7 @@ const routes = [
   {
     path: '/gestao-usuarios',
     component: GestaoUsuarios,
-    meta: { requiresAuth: true, role: ROLES.GESTOR_PEDAGOGICO }
+    meta: { requiresAuth: true, roles: ROLES_COORDENACAO_PEDAGOGICA }
   },
 
   {

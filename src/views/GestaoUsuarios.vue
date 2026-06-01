@@ -2,7 +2,12 @@
 import { computed, onMounted, ref } from 'vue'
 import { auth } from '../firebase/firebase.js'
 import { useAuthStore } from '../stores/authStore'
-import { ROLES, isRoleGestorPedagogico } from '../constants/roles'
+import {
+  ROLES,
+  isRoleCoordenacaoPedagogica,
+  isRoleCoordenadorPedagogico,
+  isRoleGestorPedagogico
+} from '../constants/roles'
 
 const API_URL = import.meta.env.VITE_API_URL
 const authStore = useAuthStore()
@@ -31,7 +36,26 @@ const novoCoordenador = ref({
 })
 
 const isGestorPedagogico = computed(() => isRoleGestorPedagogico(authStore.role))
+const isCoordenadorPedagogico = computed(() =>
+  isRoleCoordenadorPedagogico(authStore.role)
+)
+const isCoordenacaoPedagogica = computed(() =>
+  isRoleCoordenacaoPedagogica(authStore.role)
+)
 const oficinaPadraoId = computed(() => oficinas.value[0]?.id || '')
+const descricaoCabecalho = computed(() =>
+  isGestorPedagogico.value
+    ? 'Administração institucional de acessos para educadores e coordenadores pedagógicos.'
+    : 'Gestão de educadores vinculados ao seu escopo institucional.'
+)
+const tituloLista = computed(() =>
+  isGestorPedagogico.value ? 'Usuários institucionais' : 'Educadores do escopo institucional'
+)
+const descricaoLista = computed(() =>
+  isGestorPedagogico.value
+    ? 'Lista de contas vinculadas ao sistema.'
+    : 'Lista de educadores vinculados às oficinas sob sua responsabilidade.'
+)
 
 async function obterToken() {
   const usuario = auth.currentUser
@@ -117,7 +141,7 @@ function usuarioEstaInativo(usuario) {
 }
 
 async function carregarUsuarios() {
-  if (!isGestorPedagogico.value) {
+  if (!isCoordenacaoPedagogica.value) {
     return
   }
 
@@ -125,7 +149,8 @@ async function carregarUsuarios() {
 
   try {
     const token = await obterToken()
-    const response = await fetch(`${API_URL}/admin/usuarios`, {
+    const endpoint = isGestorPedagogico.value ? '/admin/usuarios' : '/usuarios/educadores'
+    const response = await fetch(`${API_URL}${endpoint}`, {
       headers: {
         Authorization: `Bearer ${token}`
       }
@@ -137,7 +162,16 @@ async function carregarUsuarios() {
       throw new Error(data.erro || 'Não foi possível carregar os usuários institucionais.')
     }
 
-    usuarios.value = Array.isArray(data.usuarios) ? data.usuarios : []
+    if (isGestorPedagogico.value) {
+      usuarios.value = Array.isArray(data.usuarios) ? data.usuarios : []
+    } else {
+      usuarios.value = Array.isArray(data.educadores)
+        ? data.educadores.map((educador) => ({
+            ...educador,
+            role: ROLES.EDUCADOR
+          }))
+        : []
+    }
   } catch (errorAtual) {
     console.error(errorAtual)
     erro.value = errorAtual.message || 'Não foi possível carregar os usuários institucionais.'
@@ -157,7 +191,7 @@ function aplicarOficinaPadrao() {
 }
 
 async function carregarOficinas() {
-  if (!isGestorPedagogico.value) {
+  if (!isCoordenacaoPedagogica.value) {
     return
   }
 
@@ -165,7 +199,8 @@ async function carregarOficinas() {
 
   try {
     const token = await obterToken()
-    const response = await fetch(`${API_URL}/admin/oficinas`, {
+    const endpoint = isGestorPedagogico.value ? '/admin/oficinas' : '/coordenador/oficinas'
+    const response = await fetch(`${API_URL}${endpoint}`, {
       headers: {
         Authorization: `Bearer ${token}`
       }
@@ -224,7 +259,7 @@ async function criarUsuario(endpoint, payload, estadoCarregando, mensagemSucesso
 
 async function criarEducador() {
   const criado = await criarUsuario(
-    '/admin/usuarios/educadores',
+    isGestorPedagogico.value ? '/admin/usuarios/educadores' : '/usuarios/educadores',
     novoEducador.value,
     salvandoEducador,
     'Educador criado com sucesso. O link institucional de primeiro acesso foi gerado.'
@@ -240,6 +275,10 @@ async function criarEducador() {
 }
 
 async function criarCoordenador() {
+  if (!isGestorPedagogico.value) {
+    return
+  }
+
   const criado = await criarUsuario(
     '/admin/usuarios/coordenadores',
     {
@@ -260,6 +299,10 @@ async function criarCoordenador() {
 }
 
 async function alterarStatusUsuario(usuario, acao) {
+  if (!isGestorPedagogico.value) {
+    return
+  }
+
   if (!podeAlterarUsuario(usuario)) {
     return
   }
@@ -311,6 +354,44 @@ async function alterarStatusUsuario(usuario, acao) {
   }
 }
 
+async function reenviarConvite(usuario) {
+  if (!isCoordenadorPedagogico.value || usuario?.status !== 'pendente_ativacao') {
+    return
+  }
+
+  limparMensagens()
+  limparLink()
+  processandoUid.value = usuario.uid
+
+  try {
+    const token = await obterToken()
+    const response = await fetch(
+      `${API_URL}/coordenador/educadores/${usuario.uid}/reenviar-convite`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    )
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.erro || 'Não foi possível reenviar o convite institucional.')
+    }
+
+    sucesso.value = data.mensagem || 'Convite institucional reenviado com sucesso.'
+    linkPrimeiroAcesso.value = data.linkPrimeiroAcesso || ''
+    await carregarUsuarios()
+  } catch (errorAtual) {
+    console.error(errorAtual)
+    erro.value = errorAtual.message || 'Não foi possível reenviar o convite institucional.'
+  } finally {
+    processandoUid.value = ''
+  }
+}
+
 onMounted(async () => {
   await carregarOficinas()
   carregarUsuarios()
@@ -325,13 +406,11 @@ onMounted(async () => {
       </router-link>
 
       <h2>Gestão de Usuários</h2>
-      <p>
-        Administração institucional de acessos para educadores e coordenadores pedagógicos.
-      </p>
+      <p>{{ descricaoCabecalho }}</p>
     </header>
 
-    <p v-if="!isGestorPedagogico" class="erro">
-      Esta área é restrita à gestão pedagógica.
+    <p v-if="!isCoordenacaoPedagogica" class="erro">
+      Esta área é restrita à coordenação pedagógica.
     </p>
 
     <template v-else>
@@ -360,7 +439,7 @@ onMounted(async () => {
           </button>
         </form>
 
-        <form class="painel" @submit.prevent="criarCoordenador">
+        <form v-if="isGestorPedagogico" class="painel" @submit.prevent="criarCoordenador">
           <div>
             <h3>Novo coordenador pedagógico</h3>
             <p>Cria conta de coordenação pedagógica. Gestor pedagógico não é criado por esta tela.</p>
@@ -396,8 +475,8 @@ onMounted(async () => {
       <section class="painel lista-usuarios">
         <div class="lista-topo">
           <div>
-            <h3>Usuários institucionais</h3>
-            <p>Lista de contas vinculadas ao sistema.</p>
+            <h3>{{ tituloLista }}</h3>
+            <p>{{ descricaoLista }}</p>
           </div>
 
           <button type="button" class="secundario" @click="carregarUsuarios">
@@ -413,7 +492,7 @@ onMounted(async () => {
               <tr>
                 <th>Nome</th>
                 <th>E-mail</th>
-                <th>Perfil</th>
+                <th v-if="isGestorPedagogico">Perfil</th>
                 <th>Oficina</th>
                 <th>Status</th>
                 <th>Ações</th>
@@ -423,7 +502,7 @@ onMounted(async () => {
               <tr v-for="usuario in usuarios" :key="usuario.uid">
                 <td data-label="Nome">{{ usuario.nome || '-' }}</td>
                 <td data-label="E-mail">{{ usuario.email || '-' }}</td>
-                <td data-label="Perfil">{{ textoRole(usuario.role) }}</td>
+                <td v-if="isGestorPedagogico" data-label="Perfil">{{ textoRole(usuario.role) }}</td>
                 <td data-label="Oficina">
                   {{ textoOficina(usuario.oficinaId || usuario.oficinasResponsaveis?.[0]) }}
                 </td>
@@ -433,29 +512,44 @@ onMounted(async () => {
                   </span>
                 </td>
                 <td data-label="Ações" class="acoes">
-                  <span v-if="usuario.uid === authStore.uid" class="texto-apoio">
-                    Conta atual
-                  </span>
-                  <span v-else-if="usuario.role === ROLES.GESTOR_PEDAGOGICO" class="texto-apoio">
-                    Protegido
-                  </span>
-                  <button
-                    v-else-if="usuarioEstaInativo(usuario)"
-                    type="button"
-                    @click="alterarStatusUsuario(usuario, 'habilitar')"
-                    :disabled="processandoUid === usuario.uid"
-                  >
-                    {{ processandoUid === usuario.uid ? 'Habilitando...' : 'Habilitar' }}
-                  </button>
-                  <button
-                    v-else
-                    type="button"
-                    class="perigo"
-                    @click="alterarStatusUsuario(usuario, 'desabilitar')"
-                    :disabled="processandoUid === usuario.uid"
-                  >
-                    {{ processandoUid === usuario.uid ? 'Desabilitando...' : 'Desabilitar' }}
-                  </button>
+                  <template v-if="isGestorPedagogico">
+                    <span v-if="usuario.uid === authStore.uid" class="texto-apoio">
+                      Conta atual
+                    </span>
+                    <span v-else-if="usuario.role === ROLES.GESTOR_PEDAGOGICO" class="texto-apoio">
+                      Protegido
+                    </span>
+                    <button
+                      v-else-if="usuarioEstaInativo(usuario)"
+                      type="button"
+                      @click="alterarStatusUsuario(usuario, 'habilitar')"
+                      :disabled="processandoUid === usuario.uid"
+                    >
+                      {{ processandoUid === usuario.uid ? 'Habilitando...' : 'Habilitar' }}
+                    </button>
+                    <button
+                      v-else
+                      type="button"
+                      class="perigo"
+                      @click="alterarStatusUsuario(usuario, 'desabilitar')"
+                      :disabled="processandoUid === usuario.uid"
+                    >
+                      {{ processandoUid === usuario.uid ? 'Desabilitando...' : 'Desabilitar' }}
+                    </button>
+                  </template>
+                  <template v-else>
+                    <button
+                      v-if="usuario.status === 'pendente_ativacao'"
+                      type="button"
+                      @click="reenviarConvite(usuario)"
+                      :disabled="processandoUid === usuario.uid"
+                    >
+                      {{ processandoUid === usuario.uid ? 'Reenviando...' : 'Reenviar convite' }}
+                    </button>
+                    <span v-else class="texto-apoio">
+                      Sem ação disponível
+                    </span>
+                  </template>
                 </td>
               </tr>
             </tbody>

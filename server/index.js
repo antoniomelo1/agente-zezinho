@@ -26,6 +26,7 @@ import criarEducadorInstitucional, {
 import ativarEducadorAposRedefinicao from './services/ativarEducadorAposRedefinicao.js'
 import reenviarConviteEducador from './services/reenviarConviteEducador.js'
 import listarEducadores from './services/listarEducadores.js'
+import listarOficinasCoordenador from './services/listarOficinasCoordenador.js'
 import salvarRegistroDiario from './services/salvarRegistroDiario.js'
 import excluirRegistroDiario, {
   ExcluirRegistroDiarioError
@@ -445,6 +446,24 @@ app.get(
       }
 
       res.status(500).json({ erro: 'Erro ao buscar tema anterior sugerido' })
+    }
+  }
+)
+
+app.get(
+  '/coordenador/oficinas',
+  requireAuth,
+  requireRole(ROLES_COORDENACAO_PEDAGOGICA),
+  async (req, res) => {
+    try {
+      const oficinas = await listarOficinasCoordenador({
+        operador: req.currentUser
+      })
+
+      res.json({ oficinas })
+    } catch (error) {
+      console.error(error)
+      res.status(500).json({ erro: 'Erro ao listar oficinas da coordenação' })
     }
   }
 )

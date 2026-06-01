@@ -5,12 +5,11 @@ import { useRouter } from 'vue-router'
 import { auth } from './firebase/firebase'
 import { signOut } from 'firebase/auth'
 import { useAuthStore } from './stores/authStore'
-import { isRoleCoordenacaoPedagogica, isRoleGestorPedagogico } from './constants/roles'
+import { isRoleCoordenacaoPedagogica } from './constants/roles'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const isCoordenador = computed(() => isRoleCoordenacaoPedagogica(authStore.role))
-const isGestorPedagogico = computed(() => isRoleGestorPedagogico(authStore.role))
 
 async function logout() {
   try {
@@ -40,7 +39,7 @@ async function logout() {
         <router-link v-if="!isCoordenador" to="/relatorio-mensal">Relatórios</router-link>
         <router-link v-if="!isCoordenador" to="/plano-aulas-mensal">Plano Mensal</router-link>
         <router-link to="/base-institucional">Base Institucional</router-link>
-        <router-link v-if="isGestorPedagogico" to="/gestao-usuarios">Gestão de Usuários</router-link>
+        <router-link v-if="isCoordenador" to="/gestao-usuarios">Gestão de Usuários</router-link>
 
         <button @click="logout" class="btn-logout">
           Sair
