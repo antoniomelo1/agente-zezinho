@@ -246,7 +246,8 @@ onMounted(() => {
 <template>
   <section class="registro-container">
     <header class="registro-header">
-      <h2>Registro diário da Oficina de Programação</h2>
+      <h2>Painel do Educador</h2>
+      <p>Registro diário da Oficina de Programação</p>
       <p>Base pedagógica para o Relatório de Execução Mensal</p>
     </header>
 
