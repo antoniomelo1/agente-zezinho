@@ -31,6 +31,9 @@ import salvarRegistroDiario from './services/salvarRegistroDiario.js'
 import excluirRegistroDiario, {
   ExcluirRegistroDiarioError
 } from './services/excluirRegistroDiario.js'
+import listarRegistrosInvalidosAuditoria, {
+  AuditoriaRegistrosInvalidosError
+} from './services/listarRegistrosInvalidosAuditoria.js'
 import salvarPlanoAnual, {
   PlanoAnualError
 } from './services/salvarPlanoAnual.js'
@@ -500,6 +503,36 @@ app.post(
       }
 
       res.status(500).json({ erro: 'Erro ao salvar registro diário' })
+    }
+  }
+)
+
+app.get(
+  '/registros-diarios/auditoria/invalidados',
+  requireAuth,
+  requireRole(ROLES_COORDENACAO_PEDAGOGICA),
+  async (req, res) => {
+    try {
+      const resultado = await listarRegistrosInvalidosAuditoria({
+        operador: req.currentUser,
+        filtros: {
+          oficinaId: req.query.oficinaId,
+          uidEducador: req.query.uidEducador,
+          dataInicio: req.query.dataInicio,
+          dataFim: req.query.dataFim,
+          limite: req.query.limite
+        }
+      })
+
+      res.json(resultado)
+    } catch (error) {
+      console.error(error)
+
+      if (error instanceof AuditoriaRegistrosInvalidosError) {
+        return res.status(error.statusCode).json({ erro: error.publicMessage })
+      }
+
+      res.status(500).json({ erro: 'Erro ao consultar auditoria institucional de registros' })
     }
   }
 )
