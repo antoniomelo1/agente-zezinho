@@ -2,7 +2,10 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { auth } from '../firebase/firebase.js'
 import { useAuthStore } from '../stores/authStore'
-import { isRoleCoordenacaoPedagogica } from '../constants/roles'
+import {
+  isRoleCoordenacaoPedagogica,
+  isRoleGestorPedagogico
+} from '../constants/roles'
 
 const API_URL = import.meta.env.VITE_API_URL
 const authStore = useAuthStore()
@@ -428,6 +431,12 @@ const podeInvalidarRegistro = computed(() =>
   isRoleCoordenacaoPedagogica(authStore.role)
 )
 
+const tituloPainel = computed(() =>
+  isRoleGestorPedagogico(authStore.role)
+    ? 'Painel do Gestor Pedagógico'
+    : 'Painel do Coordenador Pedagógico'
+)
+
 const oficinasFiltradas = computed(() => {
   if (!selectedOficinaId.value) {
     return leituraOperacional.value.oficinas
@@ -489,7 +498,7 @@ onMounted(() => {
 <template>
   <div class="painel-container">
     <section class="cabecalho">
-      <h2>Painel Pedagógico</h2>
+      <h2>{{ tituloPainel }}</h2>
       <p class="cabecalho-texto">
         Gestão institucional de educadores e leitura operacional das oficinas
       </p>

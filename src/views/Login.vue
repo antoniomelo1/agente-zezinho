@@ -13,6 +13,7 @@ import { ROLES, isRoleCoordenacaoPedagogica } from '../constants/roles'
 
 const email = ref('')
 const senha = ref('')
+const senhaInput = ref(null)
 const carregando = ref(false)
 const mostrarSenha = ref(false)
 const exibirRecuperacaoSenha = ref(false)
@@ -23,6 +24,10 @@ const tipoMensagemRecuperacao = ref('info')
 
 const router = useRouter()
 const authStore = useAuthStore()
+
+const focarCampoSenha = () => {
+  senhaInput.value?.focus()
+}
 
 const possuiVinculoAtivo = (userData) => {
   if (userData?.ativo === false) {
@@ -133,12 +138,19 @@ const enviarRecuperacaoSenha = async () => {
   <div class="container-auth">
     <h2>Login</h2>
 
-    <input v-model="email" type="email" placeholder="E-mail" />
+    <input
+      v-model="email"
+      type="email"
+      placeholder="E-mail"
+      @keydown.enter.prevent="focarCampoSenha"
+    />
     <div class="campo-senha">
       <input
+        ref="senhaInput"
         v-model="senha"
         :type="mostrarSenha ? 'text' : 'password'"
         placeholder="Senha"
+        @keydown.enter.prevent="login"
       />
       <button
         class="toggle-senha"
@@ -151,7 +163,7 @@ const enviarRecuperacaoSenha = async () => {
       </button>
     </div>
 
-    <button @click="login" :disabled="carregando">
+    <button type="button" @click="login" :disabled="carregando">
       {{ carregando ? 'Entrando...' : 'Entrar' }}
     </button>
 
