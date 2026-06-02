@@ -40,6 +40,7 @@ async function logout() {
         <router-link v-if="!isCoordenador" to="/plano-aulas-mensal">Plano Mensal</router-link>
         <router-link to="/base-institucional">Base Institucional</router-link>
         <router-link v-if="isCoordenador" to="/gestao-usuarios">Gestão de Usuários</router-link>
+        <router-link v-if="isCoordenador" to="/auditoria-registros">Auditoria de Registros</router-link>
 
         <button @click="logout" class="btn-logout">
           Sair
