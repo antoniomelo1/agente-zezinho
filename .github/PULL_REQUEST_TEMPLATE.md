@@ -8,10 +8,10 @@ Descreva de forma clara o que este PR faz e qual problema resolve.
 
 Marque apenas uma opção:
 
-- [ ] fix(ui) — ajustes de interface e textos visíveis
-- [ ] fix(backend) — ajustes internos sem alteração de comportamento esperado
-- [ ] refactor — reorganização de código sem mudança funcional
-- [ ] feat — nova funcionalidade
+* [ ] fix(ui) — ajustes de interface e textos visíveis
+* [ ] fix(backend) — ajustes internos sem alteração de comportamento esperado
+* [ ] refactor — reorganização de código sem mudança funcional
+* [ ] feat — nova funcionalidade
 
 ---
 
@@ -19,9 +19,9 @@ Marque apenas uma opção:
 
 Liste exatamente o que foi alterado:
 
-- 
-- 
-- 
+*
+*
+*
 
 ---
 
@@ -29,20 +29,21 @@ Liste exatamente o que foi alterado:
 
 Marque o que este PR afeta:
 
-- [ ] Nenhuma alteração funcional
-- [ ] Ajuste de comportamento
-- [ ] Nova funcionalidade
+* [ ] Nenhuma alteração funcional
+* [ ] Ajuste de comportamento
+* [ ] Nova funcionalidade
 
 ### Áreas afetadas:
 
-- [ ] Autenticação / acesso institucional
-- [ ] Firestore (leitura/escrita de dados)
-- [ ] Registro diário
-- [ ] Relatório mensal
-- [ ] Geração de DOCX
-- [ ] Prompt / IA (OpenAI)
-- [ ] Navegação / rotas
-- [ ] Governança / painel do coordenador
+* [ ] Autenticação / acesso institucional
+* [ ] Firestore (leitura/escrita de dados)
+* [ ] Registro diário
+* [ ] Plano mensal
+* [ ] Relatório mensal
+* [ ] Geração de DOCX
+* [ ] Prompt / IA (OpenAI)
+* [ ] Navegação / rotas
+* [ ] Governança / painel do coordenador
 
 ---
 
@@ -50,13 +51,24 @@ Marque o que este PR afeta:
 
 Descreva o que foi testado:
 
-- [ ] Login e autenticação
-- [ ] Navegação geral
-- [ ] Registro diário
-- [ ] Relatório mensal
-- [ ] Geração de DOCX
-- [ ] Plano mensal / base institucional
-- [ ] Outro:
+* [ ] Login e autenticação
+* [ ] Navegação geral
+* [ ] Registro diário
+* [ ] Plano mensal
+* [ ] Relatório mensal
+* [ ] Geração de DOCX
+* [ ] Outro:
+
+---
+
+# 🔍 Regressão
+
+Confirme:
+
+* [ ] Checklist de regressão executado (`docs/checklist-regressao-pr.md`)
+* [ ] Nenhuma regressão identificada
+* [ ] Fluxos relacionados foram verificados
+* [ ] Riscos conhecidos foram documentados (se houver)
 
 ---
 
@@ -64,10 +76,11 @@ Descreva o que foi testado:
 
 Inclua qualquer ponto relevante:
 
-- dependência de outro PR
-- limitações de teste
-- validação parcial
-- decisões técnicas importantes
+* dependência de outro PR
+* limitações de teste
+* validação parcial
+* decisões técnicas importantes
+* débitos técnicos futuros
 
 ---
 
@@ -75,26 +88,28 @@ Inclua qualquer ponto relevante:
 
 Confirme:
 
-- [ ] Não utiliza `error.message` para controle de fluxo
-- [ ] Mensagens seguem padrão institucional
-- [ ] Não utiliza termo "alunos" (usar "jovens", "participantes", etc.)
-- [ ] Texto está em passado quando aplicável (relatórios)
-- [ ] Prompt de IA foi revisado (se aplicável)
+* [ ] Não utiliza `error.message` para controle de fluxo
+* [ ] Mensagens seguem padrão institucional
+* [ ] Não utiliza termo "alunos" (usar "jovens", "participantes", "zezinhos" etc.)
+* [ ] Texto está em passado quando aplicável (relatórios)
+* [ ] Prompt de IA foi revisado (se aplicável)
+* [ ] Compatibilidade institucional foi preservada
 
 ---
 
 # ✔️ Checklist de revisão
 
-- [ ] PR possui escopo único
-- [ ] Não mistura texto com lógica funcional
-- [ ] Arquivos pertencem ao mesmo domínio
-- [ ] Não há impacto inesperado em outras áreas
-- [ ] Teste mínimo foi realizado
-- [ ] Sem erro no console
+* [ ] PR possui escopo único
+* [ ] Não mistura texto com lógica funcional
+* [ ] Arquivos pertencem ao mesmo domínio
+* [ ] Não há impacto inesperado em outras áreas
+* [ ] Revisão técnica da IA foi realizada
+* [ ] Teste mínimo foi realizado
+* [ ] Sem erro no console
 
 ---
 
 # 🚀 Pronto para merge
 
-- [ ] Sim
-- [ ] Não
+* [ ] Sim
+* [ ] Não
