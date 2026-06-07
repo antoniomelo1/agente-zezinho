@@ -1,4 +1,4 @@
-import admin, { adminDb } from '../firebaseAdmin.js'
+import { adminDb } from '../firebaseAdmin.js'
 import { ROLES } from '../constants/roles.js'
 
 const LIMITE_PADRAO = 50
@@ -119,11 +119,28 @@ function dividirEmLotes(lista, tamanho) {
 }
 
 function timestampParaData(valor) {
-  if (!valor?.toDate) {
+  if (!valor) {
     return null
   }
 
-  return valor.toDate()
+  if (valor.toDate) {
+    return valor.toDate()
+  }
+
+  if (valor instanceof Date) {
+    return Number.isNaN(valor.getTime()) ? null : valor
+  }
+
+  if (typeof valor === 'string') {
+    const texto = valor.trim()
+    const data = /^\d{4}-\d{2}-\d{2}$/.test(texto)
+      ? new Date(`${texto}T00:00:00`)
+      : new Date(texto)
+
+    return Number.isNaN(data.getTime()) ? null : data
+  }
+
+  return null
 }
 
 function formatarDataISO(valor) {
@@ -174,7 +191,29 @@ function timestampParaMillis(valor) {
   return data ? data.getTime() : 0
 }
 
-function montarQueryBase({ uidEducador, dataInicio, dataFimExclusiva, limite }) {
+function estaDentroDoPeriodo(doc, dataInicio, dataFimExclusiva) {
+  if (!dataInicio && !dataFimExclusiva) {
+    return true
+  }
+
+  const dataRegistro = timestampParaData(doc.data()?.data)
+
+  if (!dataRegistro) {
+    return false
+  }
+
+  if (dataInicio && dataRegistro < dataInicio) {
+    return false
+  }
+
+  if (dataFimExclusiva && dataRegistro >= dataFimExclusiva) {
+    return false
+  }
+
+  return true
+}
+
+function montarQueryBase({ uidEducador, limite, aplicarLimite = true }) {
   let query = adminDb
     .collection('registros_diarios')
     .where('excluido', '==', true)
@@ -183,19 +222,9 @@ function montarQueryBase({ uidEducador, dataInicio, dataFimExclusiva, limite }) 
     query = query.where('uidEducador', '==', uidEducador)
   }
 
-  if (dataInicio) {
-    query = query.where('data', '>=', admin.firestore.Timestamp.fromDate(dataInicio))
-  }
+  query = query.orderBy('excluidoEm', 'desc')
 
-  if (dataFimExclusiva) {
-    query = query.where('data', '<', admin.firestore.Timestamp.fromDate(dataFimExclusiva))
-  }
-
-  query = dataInicio || dataFimExclusiva
-    ? query.orderBy('data', 'desc')
-    : query.orderBy('excluidoEm', 'desc')
-
-  return query.limit(limite)
+  return aplicarLimite ? query.limit(limite) : query
 }
 
 async function buscarRegistros({
@@ -205,16 +234,18 @@ async function buscarRegistros({
   dataFimExclusiva,
   limite
 }) {
+  const aplicarFiltroPeriodo = Boolean(dataInicio || dataFimExclusiva)
   const queryBase = montarQueryBase({
     uidEducador,
-    dataInicio,
-    dataFimExclusiva,
-    limite
+    limite,
+    aplicarLimite: !aplicarFiltroPeriodo
   })
 
   if (oficinasConsulta === null) {
     const snapshot = await queryBase.get()
-    return snapshot.docs
+    return snapshot.docs.filter((doc) =>
+      estaDentroDoPeriodo(doc, dataInicio, dataFimExclusiva)
+    )
   }
 
   if (oficinasConsulta.length === 0) {
@@ -240,7 +271,9 @@ async function buscarRegistros({
     })
   })
 
-  return Array.from(docsPorId.values())
+  return Array.from(docsPorId.values()).filter((doc) =>
+    estaDentroDoPeriodo(doc, dataInicio, dataFimExclusiva)
+  )
 }
 
 function mapearRegistroAuditoria(doc) {
