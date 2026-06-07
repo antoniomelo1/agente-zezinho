@@ -211,7 +211,7 @@ async function salvarRegistro() {
     limparFormulario()
   } catch (error) {
     console.error('Erro ao salvar registro:', error)
-    alert('Erro ao salvar o registro. Verifique o console.')
+    alert(error.message || 'Erro ao salvar o registro. Verifique o console.')
   }
 }
 
