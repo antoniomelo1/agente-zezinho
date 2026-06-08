@@ -24,4 +24,26 @@ dist-ssr
 *.sw?
 # Environment variables
 .env
+.env.*
+!.env.example
 server/.env
+server/.env.*
+
+# Credentials and private keys
+serviceAccount*.json
+**/serviceAccount*.json
+*.pem
+*.key
+*.p12
+*.pfx
+*.cert
+*.crt
+*.cer
+
+# Backups, dumps and exports
+*.bak
+*.backup
+*.dump
+*.sql
+*.export
+*.zip
