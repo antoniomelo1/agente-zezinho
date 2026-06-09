@@ -4,8 +4,17 @@ import {
   HeadingLevel,
   Packer,
   Paragraph,
-  TextRun
+  Table,
+  TableCell,
+  TableLayoutType,
+  TableRow,
+  TextRun,
+  WidthType
 } from 'docx'
+
+const LARGURA_TABELA_DXA = 9020
+const LARGURA_CAMPO_DXA = 2200
+const LARGURA_CONTEUDO_DXA = LARGURA_TABELA_DXA - LARGURA_CAMPO_DXA
 
 function corrigirOrtografiaInstitucional(texto) {
   if (typeof texto !== 'string') {
@@ -53,14 +62,35 @@ function paragrafoInstitucional(texto, overrides = {}) {
   })
 }
 
-function paragrafoCentralizado(texto, overrides = {}) {
+function paragrafoTabela(texto, overrides = {}) {
   return new Paragraph({
-    alignment: AlignmentType.CENTER,
+    alignment: AlignmentType.JUSTIFIED,
     spacing: {
-      after: 120
+      line: 300,
+      lineRule: 'auto',
+      after: 80
     },
     children: [new TextRun(corrigirOrtografiaInstitucional(texto))],
     ...overrides
+  })
+}
+
+function paragrafoRotulo(texto) {
+  return new Paragraph({
+    spacing: { after: 80 },
+    children: [
+      new TextRun({
+        text: corrigirOrtografiaInstitucional(texto),
+        bold: true
+      })
+    ]
+  })
+}
+
+function paragrafoEspacador() {
+  return new Paragraph({
+    text: '',
+    spacing: { after: 180 }
   })
 }
 
@@ -104,6 +134,91 @@ function validarPlanoParaDocx(plano) {
   }
 }
 
+function normalizarParagrafosTabela(valor) {
+  const texto = corrigirOrtografiaInstitucional(valor)
+
+  if (!texto) {
+    return [paragrafoTabela('')]
+  }
+
+  return texto
+    .split(/\n\s*\n|\r?\n/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => paragrafoTabela(item))
+}
+
+function celulaTabela(conteudo, larguraDxa) {
+  const children = Array.isArray(conteudo) ? conteudo : [conteudo]
+
+  return new TableCell({
+    width: { size: larguraDxa, type: WidthType.DXA },
+    margins: {
+      top: 140,
+      bottom: 140,
+      left: 180,
+      right: 180
+    },
+    children: children.length > 0 ? children : [paragrafoTabela('')]
+  })
+}
+
+function linhaCampoConteudo(campo, conteudo) {
+  const childrenConteudo = Array.isArray(conteudo)
+    ? conteudo
+    : normalizarParagrafosTabela(conteudo)
+
+  return new TableRow({
+    children: [
+      celulaTabela(paragrafoRotulo(campo), LARGURA_CAMPO_DXA),
+      celulaTabela(childrenConteudo, LARGURA_CONTEUDO_DXA)
+    ]
+  })
+}
+
+function criarTabelaCampos(linhas) {
+  return new Table({
+    width: { size: LARGURA_TABELA_DXA, type: WidthType.DXA },
+    layout: TableLayoutType.FIXED,
+    rows: linhas.map(([campo, conteudo]) => linhaCampoConteudo(campo, conteudo))
+  })
+}
+
+function criarTabelaAtividade({ dia, semana }) {
+  const objetivos = Array.isArray(dia.objetivosEspecificos)
+    ? dia.objetivosEspecificos.map((objetivo) => paragrafoTabela(`- ${objetivo}`))
+    : [paragrafoTabela('')]
+
+  return criarTabelaCampos([
+    ['Data', formatarDataInstitucional(dia.data)],
+    ['Nome da Atividade', dia.nomeAtividade || ''],
+    ['Área do Conhecimento', (semana.areasConhecimento || []).join(', ')],
+    ['Objetivos Específicos', objetivos],
+    ['Apresentação da Atividade', dia.apresentacao || ''],
+    ['Desenvolvimento', dia.desenvolvimento || ''],
+    ['Fechamento', dia.fechamento || '']
+  ])
+}
+
+function criarTabelaRecursos(recursos) {
+  const linhasRecursos = recursos.length > 0 ? recursos : ['']
+
+  return new Table({
+    width: { size: LARGURA_TABELA_DXA, type: WidthType.DXA },
+    layout: TableLayoutType.FIXED,
+    rows: [
+      new TableRow({
+        children: [celulaTabela(paragrafoRotulo('Recurso'), LARGURA_TABELA_DXA)]
+      }),
+      ...linhasRecursos.map((recurso) =>
+        new TableRow({
+          children: [celulaTabela(normalizarParagrafosTabela(recurso), LARGURA_TABELA_DXA)]
+        })
+      )
+    ]
+  })
+}
+
 export default async function gerarPlanoAulasMensalDocx(plano) {
   validarPlanoParaDocx(plano)
 
@@ -119,13 +234,14 @@ export default async function gerarPlanoAulasMensalDocx(plano) {
   )
 
   children.push(
-    paragrafoInstitucional(`Mês/Ano: ${plano.cabecalho?.mes}/${plano.cabecalho?.ano}`),
-    paragrafoInstitucional(`Oficina: ${plano.cabecalho?.oficina || ''}`),
-    paragrafoInstitucional(`Educador: ${plano.cabecalho?.educador || ''}`),
-    paragrafoInstitucional(
-      `Eixo da pedagogia: ${plano.cabecalho?.eixoPedagogia || ''}`
-    ),
-    paragrafoInstitucional(`Projeto do mês: ${plano.cabecalho?.projetoMes || ''}`)
+    criarTabelaCampos([
+      ['Oficina', plano.cabecalho?.oficina || ''],
+      ['Educador', plano.cabecalho?.educador || ''],
+      ['Mês/Ano', `${plano.cabecalho?.mes}/${plano.cabecalho?.ano}`],
+      ['Eixo da pedagogia', plano.cabecalho?.eixoPedagogia || ''],
+      ['Projeto do Mês', plano.cabecalho?.projetoMes || '']
+    ]),
+    paragrafoEspacador()
   )
 
   children.push(
@@ -145,17 +261,11 @@ export default async function gerarPlanoAulasMensalDocx(plano) {
 
   ;(plano.semanas || []).forEach((semana) => {
     children.push(
-      paragrafoCentralizado('---', {
-        spacing: { before: 320, after: 80 }
-      }),
       new Paragraph({
-        text: `${semana.identificacao} · ${semana.periodo}`,
+        text: `${semana.identificacao} - ${semana.periodo}`,
         heading: HeadingLevel.HEADING_2,
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 80 }
-      }),
-      paragrafoCentralizado('---', {
-        spacing: { after: 160 }
+        alignment: AlignmentType.JUSTIFIED,
+        spacing: { before: 320, after: 120 }
       })
     )
 
@@ -167,57 +277,16 @@ export default async function gerarPlanoAulasMensalDocx(plano) {
       }
     })
 
-    children.push(
-      paragrafoInstitucional(
-        `Áreas do conhecimento: ${(semana.areasConhecimento || []).join(', ')}`
-      )
-    )
-
     ;(semana.dias || []).forEach((dia) => {
       children.push(
         new Paragraph({
-          text: `${formatarDataInstitucional(dia.data)} · ${dia.nomeAtividade}`,
+          text: `${formatarDataInstitucional(dia.data)} - ${dia.nomeAtividade}`,
           heading: HeadingLevel.HEADING_3,
           alignment: AlignmentType.JUSTIFIED,
           spacing: { before: 220, after: 100 }
-        })
-      )
-
-      children.push(
-        new Paragraph({
-          text: 'Objetivos específicos',
-          heading: HeadingLevel.HEADING_4,
-          alignment: AlignmentType.JUSTIFIED,
-          spacing: { before: 80, after: 80 }
-        })
-      )
-
-      ;(dia.objetivosEspecificos || []).forEach((objetivo) => {
-        children.push(paragrafoInstitucional(`- ${objetivo}`))
-      })
-
-      children.push(
-        new Paragraph({
-          text: 'Apresentação',
-          heading: HeadingLevel.HEADING_4,
-          alignment: AlignmentType.JUSTIFIED,
-          spacing: { before: 80, after: 80 }
         }),
-        paragrafoInstitucional(dia.apresentacao || ''),
-        new Paragraph({
-          text: 'Desenvolvimento',
-          heading: HeadingLevel.HEADING_4,
-          alignment: AlignmentType.JUSTIFIED,
-          spacing: { before: 80, after: 80 }
-        }),
-        paragrafoInstitucional(dia.desenvolvimento || ''),
-        new Paragraph({
-          text: 'Fechamento',
-          heading: HeadingLevel.HEADING_4,
-          alignment: AlignmentType.JUSTIFIED,
-          spacing: { before: 80, after: 80 }
-        }),
-        paragrafoInstitucional(dia.fechamento || '')
+        criarTabelaAtividade({ dia, semana }),
+        paragrafoEspacador()
       )
     })
   })
@@ -228,12 +297,9 @@ export default async function gerarPlanoAulasMensalDocx(plano) {
       heading: HeadingLevel.HEADING_2,
       alignment: AlignmentType.JUSTIFIED,
       spacing: { before: 320, after: 120 }
-    })
+    }),
+    criarTabelaRecursos(plano.recursosMes || [])
   )
-
-  ;(plano.recursosMes || []).forEach((recurso) => {
-    children.push(paragrafoInstitucional(`- ${recurso}`))
-  })
 
   const doc = new Document({
     sections: [{ children }]
