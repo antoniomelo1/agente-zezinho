@@ -168,6 +168,77 @@ function montarObjetivosEspecificos({ modulo, diaSemanaLabel, indiceDiaGlobal })
   })
 }
 
+function montarObjetivosEspecificosFallbackNeutro() {
+  return [
+    'Compreender os conceitos centrais previstos para a atividade, relacionando-os ao percurso formativo do dia.',
+    'Aplicar procedimentos praticos orientados na construcao de solucoes coerentes com os desafios propostos.',
+    'Fortalecer autonomia, colaboracao e capacidade de resolver problemas durante as vivencias planejadas.'
+  ].map(corrigirOrtografiaInstitucional)
+}
+
+function motivoObjetivoInvalido(objetivo) {
+  if (typeof objetivo !== 'string') {
+    return 'objetivo_nao_textual'
+  }
+
+  const texto = corrigirOrtografiaInstitucional(objetivo)
+  const tamanho = texto.length
+
+  if (tamanho < 40) {
+    return 'objetivo_curto'
+  }
+
+  if (tamanho > 280) {
+    return 'objetivo_longo'
+  }
+
+  if (/\balunos\b/i.test(texto)) {
+    return 'termo_institucional_bloqueado'
+  }
+
+  return ''
+}
+
+function normalizarObjetivosEspecificosIA(objetivosIA, dia) {
+  const objetivosFallback = montarObjetivosEspecificosFallbackNeutro()
+
+  if (!Array.isArray(objetivosIA)) {
+    console.warn('Fallback de objetivos especificos aplicado.', {
+      data: dia.data,
+      nomeAtividade: dia.nomeAtividade,
+      motivo: 'estrutura_invalida'
+    })
+
+    return objetivosFallback
+  }
+
+  let houveFallback = objetivosIA.length !== 3
+  const motivosFallback = objetivosIA.length !== 3 ? ['quantidade_invalida'] : []
+
+  const objetivosNormalizados = objetivosFallback.map((objetivoFallback, indice) => {
+    const objetivoIA = objetivosIA[indice]
+    const motivoInvalido = motivoObjetivoInvalido(objetivoIA)
+
+    if (motivoInvalido) {
+      houveFallback = true
+      motivosFallback.push(`objetivo_${indice + 1}_${motivoInvalido}`)
+      return objetivoFallback
+    }
+
+    return corrigirOrtografiaInstitucional(objetivoIA)
+  })
+
+  if (houveFallback) {
+    console.warn('Fallback parcial de objetivos especificos aplicado.', {
+      data: dia.data,
+      nomeAtividade: dia.nomeAtividade,
+      motivo: motivosFallback.join(',')
+    })
+  }
+
+  return objetivosNormalizados
+}
+
 function montarNomeAtividade({ modulo, diaSemanaLabel }) {
   if (diaSemanaLabel === 'Terca-feira') {
     return corrigirOrtografiaInstitucional(`Abertura semanal do módulo ${modulo}`)
@@ -366,12 +437,13 @@ IMPORTANTE:
 - A estrutura do plano ja esta definida e nao pode ser alterada.
 - Nao crie, remova, reordene ou renomeie semanas.
 - Nao crie, remova, reordene ou renomeie datas.
-- Nao altere nome de atividade nem objetivos especificos.
+- Nao altere nome de atividade.
 - Sua funcao e preencher somente:
   1. importanciaProjetoMes
-  2. apresentacao de cada dia
-  3. desenvolvimento de cada dia
-  4. fechamento de cada dia
+  2. objetivosEspecificos de cada dia
+  3. apresentacao de cada dia
+  4. desenvolvimento de cada dia
+  5. fechamento de cada dia
 
 REGRAS OBRIGATORIAS:
 - Todo o texto deve estar no futuro.
@@ -382,6 +454,14 @@ REGRAS OBRIGATORIAS:
 - Nao mencione inteligencia artificial, sistema ou automacao.
 - Mantenha continuidade pedagogica entre mes anterior, modulo atual e projeto do mes.
 - Nao copie literalmente o documento base nem o plano anual.
+- Em objetivosEspecificos, escreva exatamente 3 objetivos por dia.
+- O primeiro objetivo deve focar compreensao conceitual.
+- O segundo objetivo deve focar aplicacao pratica.
+- O terceiro objetivo deve focar autonomia, colaboracao ou resolucao de problemas.
+- O modulo do dia deve servir como contexto, sem obrigatoriedade de repetir seu nome em todos os objetivos.
+- O nome do modulo pode aparecer no maximo uma vez entre os tres objetivos do mesmo dia.
+- Priorize conceitos, praticas e competencias em vez de repetir literalmente o titulo do modulo.
+- Os objetivos devem parecer escritos por um educador, nao por um template.
 
 DOCUMENTO BASE:
 ${documentoBase}
@@ -399,12 +479,13 @@ FORMATO OBRIGATORIO DA RESPOSTA:
 - Retorne apenas JSON valido.
 - Preserve exatamente a mesma estrutura recebida.
 - Preencha somente os campos de texto solicitados.
+- Em objetivosEspecificos, retorne sempre um array com exatamente 3 strings nao vazias.
 - Em importanciaProjetoMes, escreva obrigatoriamente 3 paragrafos distintos.
 - Estruture esses paragrafos em progressao de ideias:
   1. contexto pedagogico do mes
   2. relevancia tecnica do trabalho previsto
   3. impacto formativo esperado para os jovens
-- Evite repeticao mecanica de abertura entre apresentacao, desenvolvimento e fechamento.
+- Evite repeticao mecanica de abertura entre objetivos, apresentacao, desenvolvimento e fechamento.
 `
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -462,6 +543,10 @@ function combinarEstruturaComIA(estrutura, conteudoIA) {
 
         return {
           ...dia,
+          objetivosEspecificos: normalizarObjetivosEspecificosIA(
+            diaIA.objetivosEspecificos,
+            dia
+          ),
           apresentacao: corrigirOrtografiaInstitucional(diaIA.apresentacao),
           desenvolvimento: corrigirOrtografiaInstitucional(diaIA.desenvolvimento),
           fechamento: corrigirOrtografiaInstitucional(diaIA.fechamento)
@@ -473,6 +558,24 @@ function combinarEstruturaComIA(estrutura, conteudoIA) {
   return {
     importanciaProjetoMes,
     semanas
+  }
+}
+
+function montarConteudoPlanoFallback({ semanasBase, projetoMes }) {
+  return {
+    importanciaProjetoMes: [
+      `O mes sera organizado em continuidade ao projeto ${projetoMes}, preservando a intencionalidade pedagogica da Oficina de Programacao e o acompanhamento do percurso formativo do grupo.`,
+      'As atividades previstas deverao favorecer a articulacao entre conceitos, praticas orientadas e registros do processo, mantendo relacao com os modulos planejados para o periodo.',
+      'Espera-se que os jovens avancem na compreensao tecnica, na participacao qualificada e na construcao gradual de autonomia durante as vivencias propostas.'
+    ].join('\n\n'),
+    semanas: semanasBase.map((semana) => ({
+      dias: semana.dias.map((dia) => ({
+        objetivosEspecificos: montarObjetivosEspecificosFallbackNeutro(),
+        apresentacao: `A atividade sera apresentada a partir de ${dia.nomeAtividade.toLowerCase()}, contextualizando o percurso previsto e os objetivos formativos do dia.`,
+        desenvolvimento: 'O desenvolvimento devera articular orientacao pedagogica, pratica acompanhada, registro das aprendizagens e participacao ativa dos jovens.',
+        fechamento: 'O fechamento devera retomar os principais pontos trabalhados, favorecer a socializacao das percepcoes e organizar encaminhamentos para a continuidade do percurso.'
+      }))
+    }))
   }
 }
 
@@ -608,7 +711,7 @@ export default async function gerarPlanoAulasMensal({
       dias: semana.dias.map((dia) => ({
         nomeAtividade: dia.nomeAtividade,
         data: dia.data,
-        objetivosEspecificos: dia.objetivosEspecificos,
+        objetivosEspecificos: ['', '', ''],
         apresentacao: '',
         desenvolvimento: '',
         fechamento: ''
@@ -642,12 +745,22 @@ export default async function gerarPlanoAulasMensal({
     2
   )
 
-  const conteudoIA = await gerarTextosPlanoComIA({
-    documentoBase,
-    planoAnual: normalizarTexto(planoAnual.defesaProjetoAplicado),
-    contextoPlano,
-    estruturaIA
-  })
+  let conteudoIA
+
+  try {
+    conteudoIA = await gerarTextosPlanoComIA({
+      documentoBase,
+      planoAnual: normalizarTexto(planoAnual.defesaProjetoAplicado),
+      contextoPlano,
+      estruturaIA
+    })
+  } catch (error) {
+    console.error('Falha ao gerar textos do plano mensal com IA. Aplicando fallback.', error)
+    conteudoIA = montarConteudoPlanoFallback({
+      semanasBase,
+      projetoMes
+    })
+  }
 
   const estruturaFinal = combinarEstruturaComIA(
     {
