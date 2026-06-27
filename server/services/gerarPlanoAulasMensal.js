@@ -168,12 +168,249 @@ function montarObjetivosEspecificos({ modulo, diaSemanaLabel, indiceDiaGlobal })
   })
 }
 
-function montarObjetivosEspecificosFallbackNeutro() {
-  return [
-    'Compreender os conceitos centrais previstos para a atividade, relacionando-os ao percurso formativo do dia.',
-    'Aplicar procedimentos praticos orientados na construcao de solucoes coerentes com os desafios propostos.',
-    'Fortalecer autonomia, colaboracao e capacidade de resolver problemas durante as vivencias planejadas.'
-  ].map(corrigirOrtografiaInstitucional)
+function obterContextoFallback(dia = {}) {
+  const nomeAtividade = normalizarTextoParaComparacao(dia.nomeAtividade)
+
+  let tipoAtividade = 'desenvolvimento'
+
+  if (nomeAtividade.startsWith('abertura semanal')) {
+    tipoAtividade = 'abertura'
+  } else if (nomeAtividade.startsWith('consolidacao semanal')) {
+    tipoAtividade = 'consolidacao'
+  }
+
+  return { tipoAtividade }
+}
+
+function montarObjetivosEspecificosFallbackNeutro(dia) {
+  const { tipoAtividade } = obterContextoFallback(dia)
+  const objetivosPorTipo = {
+    abertura: [
+      'Reconhecer os conhecimentos prévios relacionados ao percurso da semana e formular questões para orientar a investigação.',
+      'Explorar os primeiros procedimentos da proposta por meio de exemplos comentados e registros das descobertas.',
+      'Organizar estratégias de participação que favoreçam autonomia, escuta e colaboração ao longo das atividades.'
+    ],
+    desenvolvimento: [
+      'Relacionar os conceitos já estudados aos desafios previstos para esta etapa do percurso formativo.',
+      'Aplicar procedimentos em uma prática acompanhada, analisando escolhas e ajustando soluções durante o processo.',
+      'Fortalecer a autonomia na resolução de problemas e a colaboração na avaliação das produções realizadas.'
+    ],
+    consolidacao: [
+      'Sistematizar os conceitos construídos durante a semana, identificando relações entre as diferentes experiências.',
+      'Aprimorar a produção desenvolvida por meio de testes, revisão de procedimentos e registro das melhorias.',
+      'Comunicar aprendizagens e decisões adotadas, exercitando argumentação, autonomia e avaliação coletiva.'
+    ]
+  }
+
+  return objetivosPorTipo[tipoAtividade].map(corrigirOrtografiaInstitucional)
+}
+
+const ROTACAO_SEMANTICA_OBJETIVOS = [
+  ['Conceitual', 'Investigativa', 'Comunicacao'],
+  ['Tecnica', 'Criativa', 'Resolucao de Problemas'],
+  ['Projeto/Produto', 'Colaborativa', 'Autonomia'],
+  ['Reflexiva', 'Mundo do Trabalho', 'Comunicacao'],
+  ['Integracao', 'Sistematizacao', 'Aplicacao em Contexto']
+]
+
+function montarOrientacaoSemanticaObjetivos({ indiceSemana, indiceDia }) {
+  const categoriasBase =
+    ROTACAO_SEMANTICA_OBJETIVOS[indiceSemana % ROTACAO_SEMANTICA_OBJETIVOS.length]
+  const deslocamento = indiceDia % categoriasBase.length
+
+  return categoriasBase.map((_, indice) =>
+    categoriasBase[(indice + deslocamento) % categoriasBase.length]
+  )
+}
+
+function normalizarTextoParaComparacao(texto) {
+  return normalizarTexto(texto)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function obterVerboInicial(objetivo) {
+  return normalizarTextoParaComparacao(objetivo).split(' ')[0] || ''
+}
+
+function montarAjusteSemanticoModulo(nomeAtividade) {
+  const modulo = normalizarTextoParaComparacao(extrairModuloDaAtividade(nomeAtividade))
+
+  if (!modulo) {
+    return []
+  }
+
+  if (modulo.includes('responsividade') || modulo.includes('responsivo')) {
+    return ['adaptacao', 'experiencia do usuario', 'multiplos dispositivos']
+  }
+
+  if (modulo.includes('flexbox') || modulo.includes('flex box')) {
+    return ['organizacao de elementos', 'alinhamento', 'distribuicao visual']
+  }
+
+  if (modulo.includes('grid')) {
+    return ['layout', 'responsividade', 'organizacao visual']
+  }
+
+  if (modulo.includes('bootstrap')) {
+    return ['componentes', 'estrutura de interface', 'padronizacao visual']
+  }
+
+  return []
+}
+
+function calcularSimilaridadeTextual(textoA, textoB) {
+  const palavrasA = new Set(normalizarTextoParaComparacao(textoA).split(' ').filter(Boolean))
+  const palavrasB = new Set(normalizarTextoParaComparacao(textoB).split(' ').filter(Boolean))
+
+  if (palavrasA.size === 0 || palavrasB.size === 0) {
+    return 0
+  }
+
+  const intersecao = Array.from(palavrasA).filter((palavra) => palavrasB.has(palavra)).length
+  const uniao = new Set([...palavrasA, ...palavrasB]).size
+
+  return intersecao / uniao
+}
+
+function extrairModuloDaAtividade(nomeAtividade) {
+  const match = corrigirOrtografiaInstitucional(nomeAtividade).match(/módulo\s+(.+)$/i)
+  return normalizarTexto(match?.[1])
+}
+
+function montarAliasesModulo(termo) {
+  const termoNormalizado = normalizarTextoParaComparacao(termo)
+
+  if (!termoNormalizado) {
+    return {
+      aliasesFortes: [],
+      aliasesContextuais: []
+    }
+  }
+
+  const aliasesFortes = [termoNormalizado]
+  const aliasesContextuais = []
+  const trechoAntesBarra = normalizarTextoParaComparacao(
+    normalizarTexto(termo).split('/')[0]
+  )
+  const trechoAntesCom = termoNormalizado.split(/\s+com\s+/)[0].trim()
+
+  if (trechoAntesBarra && trechoAntesBarra !== termoNormalizado) {
+    aliasesFortes.push(trechoAntesBarra)
+  }
+
+  if (trechoAntesCom && trechoAntesCom !== termoNormalizado) {
+    aliasesContextuais.push(trechoAntesCom)
+  }
+
+  if (termoNormalizado.includes('flexbox') || termoNormalizado.includes('flex box')) {
+    aliasesFortes.push('flexbox', 'flex box')
+  }
+
+  if (termoNormalizado.includes('bootstrap grid')) {
+    aliasesFortes.push('grid do bootstrap', 'grade do bootstrap')
+  }
+
+  if (termoNormalizado.includes('responsividade')) {
+    if (termoNormalizado === 'responsividade') {
+      aliasesFortes.push('responsividade')
+    } else {
+      aliasesContextuais.push('responsividade')
+    }
+
+    aliasesContextuais.push('responsivo', 'adaptacao responsiva')
+  }
+
+  if (termoNormalizado === 'bootstrap') {
+    aliasesFortes.push('bootstrap')
+  } else if (termoNormalizado.includes('bootstrap')) {
+    aliasesContextuais.push('bootstrap')
+  }
+
+  if (termoNormalizado.includes('grid')) {
+    aliasesContextuais.push('grid', 'layout', 'estrutura', 'organizacao visual')
+  }
+
+  return {
+    aliasesFortes: Array.from(new Set(aliasesFortes)),
+    aliasesContextuais: Array.from(new Set(aliasesContextuais))
+  }
+}
+
+function contarOcorrenciasTexto(texto, termo) {
+  const textoNormalizado = normalizarTextoParaComparacao(texto)
+  const { aliasesFortes } = montarAliasesModulo(termo)
+
+  if (!textoNormalizado || aliasesFortes.length === 0) {
+    return 0
+  }
+
+  const padraoTermos = aliasesFortes
+    .sort((termoA, termoB) => termoB.length - termoA.length)
+    .map((termoEquivalente) =>
+      termoEquivalente.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    )
+    .join('|')
+  const regexTermos = new RegExp(
+    `(?:^|\\s)(?:${padraoTermos})(?=\\s|$)`,
+    'g'
+  )
+
+  return Array.from(textoNormalizado.matchAll(regexTermos)).length
+}
+
+function contarOcorrenciasModuloEmTextos(textos, dia) {
+  const modulo = extrairModuloDaAtividade(dia.nomeAtividade)
+
+  if (!modulo) {
+    return 0
+  }
+
+  return textos.reduce(
+    (total, texto) => total + contarOcorrenciasTexto(texto, modulo),
+    0
+  )
+}
+
+function motivoRepeticaoObjetivos(objetivos, dia) {
+  const objetivosComparacao = objetivos.map(normalizarTextoParaComparacao)
+  const objetivosUnicos = new Set(objetivosComparacao)
+
+  if (objetivosUnicos.size !== objetivos.length) {
+    return 'objetivos_identicos'
+  }
+
+  for (let indice = 0; indice < objetivos.length; indice += 1) {
+    for (let proximoIndice = indice + 1; proximoIndice < objetivos.length; proximoIndice += 1) {
+      if (calcularSimilaridadeTextual(objetivos[indice], objetivos[proximoIndice]) >= 0.82) {
+        return 'objetivos_quase_identicos'
+      }
+    }
+  }
+
+  const verbosIniciais = objetivos.map(obterVerboInicial).filter(Boolean)
+
+  if (verbosIniciais.length === objetivos.length && new Set(verbosIniciais).size === 1) {
+    return 'verbo_inicial_repetido'
+  }
+
+  const modulo = extrairModuloDaAtividade(dia.nomeAtividade)
+  const repeticoesModulo = modulo
+    ? objetivos.reduce(
+      (total, objetivo) => total + contarOcorrenciasTexto(objetivo, modulo),
+      0
+    )
+    : 0
+
+  if (repeticoesModulo > 1) {
+    return 'modulo_repetido_em_excesso'
+  }
+
+  return ''
 }
 
 function motivoObjetivoInvalido(objetivo) {
@@ -200,7 +437,7 @@ function motivoObjetivoInvalido(objetivo) {
 }
 
 function normalizarObjetivosEspecificosIA(objetivosIA, dia) {
-  const objetivosFallback = montarObjetivosEspecificosFallbackNeutro()
+  const objetivosFallback = montarObjetivosEspecificosFallbackNeutro(dia)
 
   if (!Array.isArray(objetivosIA)) {
     console.warn('Fallback de objetivos especificos aplicado.', {
@@ -228,6 +465,18 @@ function normalizarObjetivosEspecificosIA(objetivosIA, dia) {
     return corrigirOrtografiaInstitucional(objetivoIA)
   })
 
+  const motivoRepeticao = motivoRepeticaoObjetivos(objetivosNormalizados, dia)
+
+  if (motivoRepeticao) {
+    console.warn('Fallback de objetivos especificos aplicado por repeticao.', {
+      data: dia.data,
+      nomeAtividade: dia.nomeAtividade,
+      motivo: motivoRepeticao
+    })
+
+    return objetivosFallback
+  }
+
   if (houveFallback) {
     console.warn('Fallback parcial de objetivos especificos aplicado.', {
       data: dia.data,
@@ -237,6 +486,85 @@ function normalizarObjetivosEspecificosIA(objetivosIA, dia) {
   }
 
   return objetivosNormalizados
+}
+
+function montarTextosNarrativosFallbackNeutro(dia) {
+  const { tipoAtividade } = obterContextoFallback(dia)
+  const textosPorTipo = {
+    abertura: {
+      apresentacao:
+        'A semana será iniciada com a mobilização dos conhecimentos prévios do grupo e a apresentação do desafio formativo que orientará o percurso.',
+      desenvolvimento:
+        'Os jovens participarão de uma exploração inicial acompanhada, registrando hipóteses, dúvidas e possíveis caminhos para a realização da proposta.',
+      fechamento:
+        'O encontro será concluído com a organização das descobertas iniciais e a definição dos próximos passos da semana.'
+    },
+    desenvolvimento: {
+      apresentacao:
+        'O encontro será iniciado pela conexão entre as aprendizagens anteriores e o desafio previsto para esta etapa do percurso.',
+      desenvolvimento:
+        'Os participantes realizarão uma prática acompanhada, tomando decisões, testando possibilidades e registrando os ajustes feitos durante a produção.',
+      fechamento:
+        'A atividade será encerrada com a análise das soluções construídas e a organização de encaminhamentos para o avanço do trabalho.'
+    },
+    consolidacao: {
+      apresentacao:
+        'A atividade será aberta com a recuperação dos principais aprendizados da semana e a apresentação dos critérios de revisão da produção.',
+      desenvolvimento:
+        'O grupo revisará procedimentos e resultados, realizando testes e aprimoramentos que evidenciem a evolução alcançada no percurso.',
+      fechamento:
+        'O encerramento favorecerá a socialização das produções, a síntese das aprendizagens e o registro de aspectos a serem retomados.'
+    }
+  }
+
+  return textosPorTipo[tipoAtividade]
+}
+
+function normalizarTextosNarrativosIA(diaIA, dia) {
+  const textosNarrativos = {
+    apresentacao: corrigirOrtografiaInstitucional(diaIA.apresentacao),
+    desenvolvimento: corrigirOrtografiaInstitucional(diaIA.desenvolvimento),
+    fechamento: corrigirOrtografiaInstitucional(diaIA.fechamento)
+  }
+
+  const contagensPorCampo = {
+    apresentacao: contarOcorrenciasModuloEmTextos(
+      [textosNarrativos.apresentacao],
+      dia
+    ),
+    desenvolvimento: contarOcorrenciasModuloEmTextos(
+      [textosNarrativos.desenvolvimento],
+      dia
+    ),
+    fechamento: contarOcorrenciasModuloEmTextos(
+      [textosNarrativos.fechamento],
+      dia
+    )
+  }
+  const repeticoesModulo = Object.values(contagensPorCampo).reduce(
+    (total, quantidade) => total + quantidade,
+    0
+  )
+  const repeticaoNoMesmoCampo = Object.values(contagensPorCampo).some(
+    (quantidade) => quantidade > 1
+  )
+  const moduloNosTresCampos = Object.values(contagensPorCampo).every(
+    (quantidade) => quantidade > 0
+  )
+
+  if (repeticoesModulo > 2 || repeticaoNoMesmoCampo || moduloNosTresCampos) {
+    console.warn('Fallback narrativo aplicado por repeticao do modulo.', {
+      data: dia.data,
+      nomeAtividade: dia.nomeAtividade,
+      motivo: 'modulo_repetido_em_textos_narrativos',
+      repeticoesModulo,
+      contagensPorCampo
+    })
+
+    return montarTextosNarrativosFallbackNeutro(dia)
+  }
+
+  return textosNarrativos
 }
 
 function montarNomeAtividade({ modulo, diaSemanaLabel }) {
@@ -455,13 +783,24 @@ REGRAS OBRIGATORIAS:
 - Mantenha continuidade pedagogica entre mes anterior, modulo atual e projeto do mes.
 - Nao copie literalmente o documento base nem o plano anual.
 - Em objetivosEspecificos, escreva exatamente 3 objetivos por dia.
-- O primeiro objetivo deve focar compreensao conceitual.
-- O segundo objetivo deve focar aplicacao pratica.
-- O terceiro objetivo deve focar autonomia, colaboracao ou resolucao de problemas.
+- O primeiro objetivo deve focar compreensao ou reconhecimento e pode mencionar o nome do modulo quando isso for necessario.
+- O segundo objetivo nao deve repetir o nome do modulo; deve focar pratica, procedimento, aplicacao ou producao.
+- O terceiro objetivo nao deve repetir o nome do modulo; deve focar autonomia, colaboracao, reflexao, sistematizacao ou transferencia para o projeto.
+- Os tres objetivos devem cumprir funcoes diferentes: compreender ou reconhecer; aplicar ou desenvolver; sistematizar, colaborar, refletir ou transferir para o projeto.
+- Nos objetivos 2 e 3, substitua a repeticao literal do modulo por expressoes como o recurso trabalhado, a estrutura estudada, a proposta pratica, a organizacao visual, a solucao desenvolvida, os conceitos explorados ou a construcao realizada.
 - O modulo do dia deve servir como contexto, sem obrigatoriedade de repetir seu nome em todos os objetivos.
 - O nome do modulo pode aparecer no maximo uma vez entre os tres objetivos do mesmo dia.
 - Priorize conceitos, praticas e competencias em vez de repetir literalmente o titulo do modulo.
 - Os objetivos devem parecer escritos por um educador, nao por um template.
+- Quando o dia trouxer orientacaoSemantica, use as categorias apenas como referencia interna para redigir os tres objetivos.
+- Nao escreva o nome das categorias de forma mecanica; traduza cada categoria em intencao pedagogica concreta.
+- Quando houver ajustesModulo em orientacaoSemantica, use-os apenas como enfase complementar do conteudo trabalhado.
+- Varie os verbos iniciais e a estrutura das frases entre os tres objetivos do mesmo dia.
+- Evite objetivos genericos que serviriam para qualquer aula.
+- Sempre que pertinente, conecte os objetivos ao Projeto do Mes, Observacoes do Educador, Eixo da Pedagogia, modulo trabalhado e historico recente.
+- No bloco completo da atividade, considerando objetivosEspecificos, apresentacao, desenvolvimento e fechamento, o nome do modulo deve aparecer no maximo 3 vezes.
+- Nos campos apresentacao, desenvolvimento e fechamento somados, o nome do modulo pode aparecer no maximo 2 vezes e no maximo uma vez por campo.
+- Em apresentacao, desenvolvimento e fechamento, evite repeticao mecanica do nome tecnico do modulo; use as mencoes necessarias para clareza e priorize conceitos, praticas, recursos, desafios, producao, competencias e reflexao.
 
 DOCUMENTO BASE:
 ${documentoBase}
@@ -479,6 +818,7 @@ FORMATO OBRIGATORIO DA RESPOSTA:
 - Retorne apenas JSON valido.
 - Preserve exatamente a mesma estrutura recebida.
 - Preencha somente os campos de texto solicitados.
+- Nao altere campos de orientacaoSemantica quando eles existirem; eles sao apenas contexto interno.
 - Em objetivosEspecificos, retorne sempre um array com exatamente 3 strings nao vazias.
 - Em importanciaProjetoMes, escreva obrigatoriamente 3 paragrafos distintos.
 - Estruture esses paragrafos em progressao de ideias:
@@ -540,6 +880,7 @@ function combinarEstruturaComIA(estrutura, conteudoIA) {
       ...semana,
       dias: semana.dias.map((dia, indiceDia) => {
         const diaIA = semanaIA?.dias?.[indiceDia] || {}
+        const textosNarrativos = normalizarTextosNarrativosIA(diaIA, dia)
 
         return {
           ...dia,
@@ -547,9 +888,9 @@ function combinarEstruturaComIA(estrutura, conteudoIA) {
             diaIA.objetivosEspecificos,
             dia
           ),
-          apresentacao: corrigirOrtografiaInstitucional(diaIA.apresentacao),
-          desenvolvimento: corrigirOrtografiaInstitucional(diaIA.desenvolvimento),
-          fechamento: corrigirOrtografiaInstitucional(diaIA.fechamento)
+          apresentacao: textosNarrativos.apresentacao,
+          desenvolvimento: textosNarrativos.desenvolvimento,
+          fechamento: textosNarrativos.fechamento
         }
       })
     }
@@ -570,10 +911,8 @@ function montarConteudoPlanoFallback({ semanasBase, projetoMes }) {
     ].join('\n\n'),
     semanas: semanasBase.map((semana) => ({
       dias: semana.dias.map((dia) => ({
-        objetivosEspecificos: montarObjetivosEspecificosFallbackNeutro(),
-        apresentacao: `A atividade sera apresentada a partir de ${dia.nomeAtividade.toLowerCase()}, contextualizando o percurso previsto e os objetivos formativos do dia.`,
-        desenvolvimento: 'O desenvolvimento devera articular orientacao pedagogica, pratica acompanhada, registro das aprendizagens e participacao ativa dos jovens.',
-        fechamento: 'O fechamento devera retomar os principais pontos trabalhados, favorecer a socializacao das percepcoes e organizar encaminhamentos para a continuidade do percurso.'
+        objetivosEspecificos: montarObjetivosEspecificosFallbackNeutro(dia),
+        ...montarTextosNarrativosFallbackNeutro(dia)
       }))
     }))
   }
@@ -705,12 +1044,19 @@ export default async function gerarPlanoAulasMensal({
 
   const estruturaIA = {
     importanciaProjetoMes: '',
-    semanas: semanasBase.map((semana) => ({
+    semanas: semanasBase.map((semana, indiceSemana) => ({
       identificacao: semana.identificacao,
       periodo: semana.periodo,
-      dias: semana.dias.map((dia) => ({
+      dias: semana.dias.map((dia, indiceDia) => ({
         nomeAtividade: dia.nomeAtividade,
         data: dia.data,
+        orientacaoSemantica: {
+          categoriasObjetivos: montarOrientacaoSemanticaObjetivos({
+            indiceSemana,
+            indiceDia
+          }),
+          ajustesModulo: montarAjusteSemanticoModulo(dia.nomeAtividade)
+        },
         objetivosEspecificos: ['', '', ''],
         apresentacao: '',
         desenvolvimento: '',
