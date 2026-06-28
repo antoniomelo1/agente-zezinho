@@ -223,6 +223,156 @@ function montarOrientacaoSemanticaObjetivos({ indiceSemana, indiceDia }) {
   )
 }
 
+function montarEstagioPedagogicoModulo(ocorrenciaModuloNoMes) {
+  if (ocorrenciaModuloNoMes === 1) {
+    return ['descoberta', 'exploracao', 'compreensao inicial']
+  }
+
+  return [
+    'aprofundamento',
+    'integracao',
+    'comparacao',
+    'aplicacao',
+    'refinamento',
+    'sistematizacao'
+  ]
+}
+
+function montarOrientacaoNarrativa(
+  nomeAtividade,
+  { ocorrenciaModuloNoMes, categoriasSemana }
+) {
+  const nomeNormalizado = normalizarTextoParaComparacao(nomeAtividade)
+  let tipoAtividade = 'desenvolvimento'
+
+  if (nomeNormalizado.startsWith('abertura semanal')) {
+    tipoAtividade = 'abertura'
+  } else if (nomeNormalizado.startsWith('consolidacao semanal')) {
+    tipoAtividade = 'consolidacao'
+  }
+
+  const possibilidadesPorTipo = {
+    abertura: {
+      apresentacao: [
+        'contextualizacao',
+        'retomada',
+        'observacao',
+        'analise de exemplo',
+        'desafio inicial',
+        'conexao com projeto',
+        'mobilizacao de conhecimentos previos'
+      ],
+      desenvolvimento: [
+        'investigacao inicial',
+        'exploracao orientada',
+        'experimentacao',
+        'construcao colaborativa'
+      ],
+      fechamento: [
+        'sintese das descobertas',
+        'registro de hipoteses',
+        'socializacao inicial',
+        'definicao de proximos passos'
+      ]
+    },
+    desenvolvimento: {
+      apresentacao: [
+        'retomada do percurso',
+        'situacao problema',
+        'analise de exemplo',
+        'conexao com projeto',
+        'apresentacao de criterios'
+      ],
+      desenvolvimento: [
+        'investigacao',
+        'experimentacao',
+        'construcao colaborativa',
+        'resolucao de problemas',
+        'producao pratica',
+        'comparacao de solucoes',
+        'revisao',
+        'tomada de decisao'
+      ],
+      fechamento: [
+        'analise das solucoes',
+        'feedback entre pares',
+        'registro das descobertas',
+        'conexao com projeto',
+        'continuidade do percurso'
+      ]
+    },
+    consolidacao: {
+      apresentacao: [
+        'retomada das aprendizagens',
+        'observacao da producao',
+        'revisao de criterios',
+        'conexao entre etapas'
+      ],
+      desenvolvimento: [
+        'revisao',
+        'teste e aprimoramento',
+        'comparacao de solucoes',
+        'integracao das aprendizagens',
+        'producao colaborativa'
+      ],
+      fechamento: [
+        'sintese',
+        'reflexao',
+        'feedback',
+        'apresentacao das producoes',
+        'integracao',
+        'proximos passos',
+        'consolidacao das aprendizagens'
+      ]
+    }
+  }
+
+  const progressao =
+    ocorrenciaModuloNoMes > 1
+      ? {
+          prioridadesNarrativas: {
+            apresentacao: [
+              'retomada de aprendizagens acumuladas',
+              'articulacao com producao anterior',
+              'integracao ao projeto'
+            ],
+            desenvolvimento: [
+              'aprofundamento',
+              'integracao',
+              'aplicacao em contexto',
+              'refinamento',
+              'sistematizacao'
+            ],
+            fechamento: [
+              'evidencias de avancos',
+              'transferencia para o projeto',
+              'continuidade do percurso'
+            ]
+          },
+          evitarIntencoesIntrodutorias: [
+            'descoberta',
+            'investigacao inicial',
+            'exploracao inicial',
+            'mobilizacao de conhecimentos previos'
+          ]
+        }
+      : {}
+
+  return {
+    tipoAtividade,
+    possibilidades: possibilidadesPorTipo[tipoAtividade],
+    categoriasSemana,
+    ...progressao,
+    considerar: [
+      'modulo trabalhado',
+      'projeto do mes',
+      'eixo da pedagogia',
+      'observacoes do educador',
+      'continuidade do percurso formativo'
+    ]
+  }
+}
+
 function normalizarTextoParaComparacao(texto) {
   return normalizarTexto(texto)
     .normalize('NFD')
@@ -801,6 +951,21 @@ REGRAS OBRIGATORIAS:
 - No bloco completo da atividade, considerando objetivosEspecificos, apresentacao, desenvolvimento e fechamento, o nome do modulo deve aparecer no maximo 3 vezes.
 - Nos campos apresentacao, desenvolvimento e fechamento somados, o nome do modulo pode aparecer no maximo 2 vezes e no maximo uma vez por campo.
 - Em apresentacao, desenvolvimento e fechamento, evite repeticao mecanica do nome tecnico do modulo; use as mencoes necessarias para clareza e priorize conceitos, praticas, recursos, desafios, producao, competencias e reflexao.
+- Quando houver contextoNarrativo em orientacaoSemantica, use suas possibilidades apenas como intencoes pedagogicas compativeis com o tipo de atividade.
+- Escolha ou combine as intencoes narrativas conforme o modulo, o projeto do mes, o eixo da pedagogia, as observacoes do educador e a continuidade do percurso formativo.
+- As categorias da semana em categoriasObjetivos tambem devem orientar apresentacao, desenvolvimento e fechamento, preservando a funcao propria de cada campo.
+- Use ocorrenciaModuloNoMes e estagioPedagogicoModulo para representar progressao: quando o mesmo modulo reaparecer, avance em relacao a ocorrencia anterior.
+- Em ocorrencias posteriores do mesmo modulo, nao trate o conteudo como primeiro contato e nao reutilize o foco principal, a estrategia didatica, a organizacao narrativa ou o objetivo predominante da ocorrencia anterior.
+- Antes de redigir, compare os contextos internos das ocorrencias do mesmo modulo no mes e diferencie seus quatro campos textuais por progressao pedagogica, sem copiar construcoes da ocorrencia anterior.
+- EstagioPedagogicoModulo e categoriasObjetivos tem prioridade sobre possibilidades de contextoNarrativo que indiquem descoberta ou exploracao inicial.
+- Quando contextoNarrativo trouxer prioridadesNarrativas e evitarIntencoesIntrodutorias, siga essa diferenciacao nos tres campos narrativos; as possibilidades gerais do tipo ficam em segundo plano.
+- Na quinta semana, Integracao, Sistematizacao e Aplicacao em Contexto devem orientar tambem os tres campos narrativos e prevalecer sobre uma abordagem introdutoria, inclusive quando o tipo da atividade for abertura.
+- Na quinta semana, a apresentacao deve mobilizar aprendizagens acumuladas, o desenvolvimento deve integrar, sistematizar ou aplicar e o fechamento deve evidenciar avancos e continuidade; escreva essas funcoes livremente, sem usar frases-modelo.
+- Nao siga uma ordem fixa das possibilidades e nao mencione seus rotulos no texto final.
+- Ao considerar o mes completo, evite repetir a mesma estrategia narrativa e a mesma construcao de abertura em atividades consecutivas ou em ocorrencias diferentes do mesmo modulo.
+- Varie de forma natural o sujeito das frases, os conectivos, o ritmo, o tamanho dos periodos e a organizacao das ideias.
+- Nao produza diversidade apenas trocando sinonimos dentro da mesma estrutura sintatica.
+- Preserve funcoes distintas: apresentacao contextualiza ou mobiliza; desenvolvimento organiza a acao didatica; fechamento sintetiza, avalia ou encaminha a continuidade.
 
 DOCUMENTO BASE:
 ${documentoBase}
@@ -1042,26 +1207,44 @@ export default async function gerarPlanoAulasMensal({
     })
   }))
 
+  const ocorrenciasModuloNoMes = new Map()
   const estruturaIA = {
     importanciaProjetoMes: '',
     semanas: semanasBase.map((semana, indiceSemana) => ({
       identificacao: semana.identificacao,
       periodo: semana.periodo,
-      dias: semana.dias.map((dia, indiceDia) => ({
-        nomeAtividade: dia.nomeAtividade,
-        data: dia.data,
-        orientacaoSemantica: {
-          categoriasObjetivos: montarOrientacaoSemanticaObjetivos({
-            indiceSemana,
-            indiceDia
-          }),
-          ajustesModulo: montarAjusteSemanticoModulo(dia.nomeAtividade)
-        },
-        objetivosEspecificos: ['', '', ''],
-        apresentacao: '',
-        desenvolvimento: '',
-        fechamento: ''
-      }))
+      dias: semana.dias.map((dia, indiceDia) => {
+        const modulo = normalizarTextoParaComparacao(
+          extrairModuloDaAtividade(dia.nomeAtividade)
+        )
+        const ocorrenciaModuloNoMes = (ocorrenciasModuloNoMes.get(modulo) || 0) + 1
+        ocorrenciasModuloNoMes.set(modulo, ocorrenciaModuloNoMes)
+        const categoriasObjetivos = montarOrientacaoSemanticaObjetivos({
+          indiceSemana,
+          indiceDia
+        })
+
+        return {
+          nomeAtividade: dia.nomeAtividade,
+          data: dia.data,
+          orientacaoSemantica: {
+            categoriasObjetivos,
+            ajustesModulo: montarAjusteSemanticoModulo(dia.nomeAtividade),
+            contextoNarrativo: montarOrientacaoNarrativa(dia.nomeAtividade, {
+              ocorrenciaModuloNoMes,
+              categoriasSemana: categoriasObjetivos
+            }),
+            ocorrenciaModuloNoMes,
+            estagioPedagogicoModulo: montarEstagioPedagogicoModulo(
+              ocorrenciaModuloNoMes
+            )
+          },
+          objetivosEspecificos: ['', '', ''],
+          apresentacao: '',
+          desenvolvimento: '',
+          fechamento: ''
+        }
+      })
     }))
   }
 
